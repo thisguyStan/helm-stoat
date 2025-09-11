@@ -19,10 +19,6 @@ global:
     port: 14704
   january:
     port: 14705
-  crond:
-    port: 80
-  pushd:
-    port: 80
 
   secret:
     vapid_key: ''
@@ -222,8 +218,6 @@ crond:
   resources: {}
   livenessProbe:
   readinessProbe:
-  service:
-    type: ClusterIP
   extra_volumes: []
   extra_volumeMounts: []
   configMountPath: /Revolt.toml
@@ -243,8 +237,6 @@ pushd:
   resources: {}
   livenessProbe:
   readinessProbe:
-  service:
-    type: ClusterIP
   extra_volumes: []
   extra_volumeMounts: []
   configMountPath: /Revolt.toml
