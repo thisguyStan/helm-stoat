@@ -1,17 +1,17 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: "{{ include "revolt.fullname" . }}-pushd"
+  name: "{{ include "stoatchat.fullname" . }}-pushd"
   namespace: {{ .Values.global.namespace }}
   labels:
-    {{- include "revolt.labels" . | nindent 4 }}
-    revolt-app: {{ include "revolt.fullname" . }}-pushd
+    {{- include "stoatchat.labels" . | nindent 4 }}
+    stoat-app: {{ include "stoatchat.fullname" . }}-pushd
 spec:
   replicas: {{ .Values.pushd.replicaCount }}
   selector:
     matchLabels:
-      {{- include "revolt.selectorLabels" . | nindent 6 }}
-      revolt-app: {{ include "revolt.fullname" . }}-pushd
+      {{- include "stoatchat.selectorLabels" . | nindent 6 }}
+      stoat-app: {{ include "stoatchat.fullname" . }}-pushd
   template:
     metadata:
       {{- with .Values.pushd.annotations }}
@@ -19,8 +19,8 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        revolt-app: {{ include "revolt.fullname" . }}-pushd
-        {{- include "revolt.labels" . | nindent 8 }}
+        stoat-app: {{ include "stoatchat.fullname" . }}-pushd
+        {{- include "stoatchat.labels" . | nindent 8 }}
         {{- with .Values.pushd.labels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -54,7 +54,7 @@ spec:
       volumes:
         - name: config
           configMap:
-            name: {{ include "revolt.fullname" . }}-config
+            name: {{ include "stoatchat.fullname" . }}-config
         {{- with .Values.pushd.extra_volumes }}
         {{ toYaml . | nindent 8 }}
         {{- end }}

@@ -1,0 +1,81 @@
+name: Build and Push Web Container Image
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag for the image'
+        required: true
+      web_branch:
+        description: 'Branch of the for-web repository'
+        required: false
+        default: 'main'
+
+env:
+  REGISTRY: ghcr.io
+  WEB_IMAGE_NAME: ${{ github.repository_owner }}/stoat-for-web
+
+jobs:
+  build-and-push:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.WEB_IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,format=short
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+          flavor: |
+            latest=false
+
+      - name: Get version from input or use latest
+        id: version
+        run: |
+          if [ -n "${{ inputs.version }}" ]; then
+            echo "tag=${{ inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=latest" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build and push web image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./build
+          file: ./build/Dockerfile.web
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.tags }}
+            ${{ env.REGISTRY }}/${{ env.WEB_IMAGE_NAME }}:${{ steps.version.outputs.tag }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            STOAT_VERSION=${{ inputs.web_branch}}
+            VITE_API_URL=${{ vars.VITE_API_URL || 'https://stoat.example.com/api' }}
+            VITE_WS_URL=${{ vars.VITE_WS_URL || 'wss://stoat.example.com/ws' }}
+            VITE_MEDIA_URL=${{ vars.VITE_MEDIA_URL || 'https://stoat.example.com/autumn' }}
+            VITE_PROXY_URL=${{ vars.VITE_PROXY_URL || 'https://stoat.example.com/january' }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64

@@ -1,18 +1,18 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "stoatchat.fullname" . }}-api
+  name: {{ include "stoatchat.fullname" . }}-livekit
   namespace: {{ .Values.global.namespace }}
   labels:
     {{- include "stoatchat.labels" . | nindent 4 }}
-    stoat-app: {{ include "stoatchat.fullname" . }}-api
+    stoat-app: {{ include "stoatchat.fullname" . }}-livekit
 spec:
-  type: {{ .Values.api.service.type }}
+  type: {{ .Values.livekit.service.type }}
   ports:
     - name: http
       targetPort: http
       protocol: TCP
-      port: {{ .Values.global.api.port }}
+      port: 7880
   selector:
     {{- include "stoatchat.selectorLabels" . | nindent 4 }}
-    stoat-app: {{ include "stoatchat.fullname" . }}-api
+    stoat-app: {{ include "stoatchat.fullname" . }}-livekit

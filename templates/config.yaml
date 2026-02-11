@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "revolt.fullname" . }}-config
+  name: {{ include "stoatchat.fullname" . }}-config
   namespace: {{ .Values.global.namespace }}
   annotations:
     "helm.sh/resource-policy": keep
@@ -10,11 +10,11 @@ data:
     production = false
 
     [database]
-    mongodb = {{ .Values.global.subcharts.mongo.connection_url | default (printf "mongodb://%s-mongodb" (include "revolt.fullname" .)) | quote }}
-    redis = {{ .Values.global.subcharts.redis.connection_url | default (printf "redis://%s-redis-master" (include "revolt.fullname" .)) | quote }}
+    mongodb = {{ .Values.global.subcharts.mongodb.connection_url | default (printf "mongodb://%s-mongodb" (include "stoatchat.fullname" .)) | quote }}
+    redis = {{ .Values.global.subcharts.redis.connection_url | default (printf "redis://%s-redis-master" (include "stoatchat.fullname" .)) | quote }}
 
     [rabbit]
-    host = {{ .Values.global.subcharts.rabbitmq.host | default (printf "%s-rabbitmq" (include "revolt.fullname" .)) | quote }}
+    host = {{ .Values.global.subcharts.rabbitmq.host | default (printf "%s-rabbitmq" (include "stoatchat.fullname" .)) | quote }}
     port = {{ .Values.global.subcharts.rabbitmq.port }}
     username = {{ .Values.global.subcharts.rabbitmq.username | quote }}
     password = {{ .Values.global.subcharts.rabbitmq.password | quote }}
@@ -27,6 +27,13 @@ data:
     autumn = "https://{{ .Values.global.domain }}/autumn"
     january = "https://{{ .Values.global.domain }}/january"
 
+    # Public urls for livekit nodes
+    # each entry here should have a corresponding entry under `api.livekit.nodes`
+    [hosts.livekit]
+    {{- range $v := .Values.global.livekit }}
+    {{ $v.name }} = "wss://{{ $v.subdomain }}.{{ .Values.global.domain }}"
+    {{- end }}
+
     [pushd.vapid]
     private_key = "{{ .Values.global.secret.vapid_key }}"
     public_key = "{{ .Values.global.secret.vapid_public_key }}"
@@ -34,11 +41,28 @@ data:
     [files]
     encryption_key = "{{ .Values.global.secret.encryption_key }}"
 
+    [api]
+
+    [api.livekit]
+    # Config for livekit nodes
+    # Make sure to change the secret when deploying
+    # The key and secret should match the values livekit is using
+
+    {{- range $v := .Values.global.livekit }}
+
+    [api.livekit.nodes.{{ $v.name }}]
+    url = "http://livekit"
+    lat = {{ $v.lat | default 0.0 }}
+    lon = {{ $v.lon | default 0.0 }}
+    key = "{{ $v.name }}"
+    secret = "{{ $v.secret }}"
+
+    {{- end }}
 
 
     [files.s3]
     # S3 protocol endpoint
-    endpoint = {{ .Values.global.subcharts.minio.connection_url | default (printf "redis://%s-minio:9000" (include "revolt.fullname" .)) | quote }}
+    endpoint = {{ .Values.global.subcharts.minio.connection_url | default (printf "redis://%s-minio:9000" (include "stoatchat.fullname" .)) | quote }}
     # Whether to use path-style buckets
     # Generally true, except for MinIO
     path_style_buckets = false
@@ -49,3 +73,17 @@ data:
     # S3 protocol access key
     secret_access_key = "minioautumn"
     default_bucket = "revolt-uploads"
+  livekit.yml: |
+    port: 7880
+    redis:
+        address: {{ regexFind "[^/]+" (index (splitList "@" ( .Values.global.subcharts.redis.connection_url | default (printf "redis://%s-redis-master" (include "stoatchat.fullname" .)) ) ) 1) }}
+        username: {{ regexFind "[^:/]+" (trimPrefix "redis://" ( .Values.global.subcharts.redis.connection_url | default (printf "redis://%s-redis-master" (include "stoatchat.fullname" .)) ) | regexFind "[^@]+") | quote }}
+        password: {{ index (regexFindAll ":[^@]+" (regexFind "[^@]+" (trimPrefix "redis://" ( .Values.global.subcharts.redis.connection_url | default (printf "redis://%s-redis-master" (include "stoatchat.fullname" .)) ) )) -1) | trimPrefix ":" | quote }}
+    webhook:
+      api_key: {{ .Values.global.secret.livekit_key }}
+      urls:
+        - 'http://{{ include "stoatchat.fullname" . }}-voice-ingress:8500/{{ .Values.global.secret.livekit_key }}'
+    logging:
+      level: debug
+    keys:
+      {{ .Values.global.secret.livekit_key }}: {{ .Values.global.secret.livekit_secret }}

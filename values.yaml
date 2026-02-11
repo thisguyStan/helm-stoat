@@ -1,12 +1,12 @@
-# Config Reference: https://github.com/revoltchat/backend/blob/stable/crates/core/config/Revolt.toml
-# Default values for revolt.
+# Config Reference: https://github.com/stoatchat/stoatchat/blob/stable/crates/core/config/Revolt.toml
+# Default values for stoat.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
 
 global:
-  namespace: 'revolt'
-  # Domain name used for access, ex revolt.example.com
+  namespace: 'stoatchat'
+  # Domain name used for access, ex stoat.example.com
   domain: ''
 
   web:
@@ -19,11 +19,22 @@ global:
     port: 14704
   january:
     port: 14705
+  gifbox:
+    port: 14706
+
+  livekit:
+  - name: ''
+    secret: ''
+    subdomain: ''
+    # lat: 0.0 # optional
+    # lon: 0.0 # optional
 
   secret:
     vapid_key: ''
     vapid_public_key: ''
     encryption_key: ''
+    livekit_key: '' # TODO REMOVE
+    livekit_secret: ''
 
   ingress:
     enabled: false
@@ -37,7 +48,7 @@ global:
     name: ""
 
   subcharts:
-    mongo:
+    mongodb:
       enabled: true  # Set to false to use external MongoDB
       connection_url: ''
     redis:
@@ -98,9 +109,10 @@ minio:
 # Web app
 web:
   image:
-    repository: ghcr.io/revoltchat/client
-    tag: master
-    pullPolicy: Always
+    # Requires custom build - see build/BUILD-IMAGES.md
+    repository: ghcr.io/YOUR_USERNAME/stoat-for-web
+    tag: "v0.1.0" # Replace with your build image tag
+    pullPolicy: IfNotPresent
   annotations: {}
   labels: {}
   nodeSelector: {}
@@ -119,8 +131,8 @@ web:
 # Revolt API Server
 api:
   image:
-    repository: ghcr.io/revoltchat/server
-    tag: 20250210-1
+    repository: ghcr.io/stoatchat/api
+    tag: "v0.11.0"
     pullPolicy: IfNotPresent
   replicaCount: 1
   annotations: {}
@@ -138,11 +150,32 @@ api:
   configMountPath: /Revolt.toml
 
 
+# Livekit Server
+livekit:
+  image:
+    repository: ghcr.io/stoatchat/livekit-server
+    tag: "v1.9.9"
+    pullPolicy: IfNotPresent
+  annotations: {}
+  labels: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  resources: {}
+  livenessProbe:
+  readinessProbe:
+  service:
+    type: ClusterIP
+  extra_volumes: []
+  extra_volumeMounts: []
+  configMountPath: /livekit.yml
+
+
 # Events service
 bonfire:
   image:
-    repository: ghcr.io/revoltchat/bonfire
-    tag: 20250210-1
+    repository: ghcr.io/stoatchat/events
+    tag: "v0.11.0"
     pullPolicy: IfNotPresent
   replicaCount: 1
   annotations: {}
@@ -163,8 +196,8 @@ bonfire:
 # File server
 autumn:
   image:
-    repository: ghcr.io/revoltchat/autumn
-    tag: 20250210-1
+    repository: ghcr.io/stoatchat/file-server
+    tag: "v0.11.0"
     pullPolicy: IfNotPresent
   replicaCount: 1
   annotations: {}
@@ -185,8 +218,8 @@ autumn:
 # Metadata and image proxy
 january:
   image:
-    repository: ghcr.io/revoltchat/january
-    tag: 20250210-1
+    repository: ghcr.io/stoatchat/proxy
+    tag: "v0.11.0"
     pullPolicy: IfNotPresent
   replicaCount: 1
   annotations: {}
@@ -206,8 +239,8 @@ january:
 # Regular task daemon
 crond:
   image:
-    repository: ghcr.io/revoltchat/crond
-    tag: 20250210-1-debug
+    repository: ghcr.io/stoatchat/crond
+    tag: "v0.11.0"
     pullPolicy: IfNotPresent
   replicaCount: 1
   annotations: {}
@@ -225,8 +258,48 @@ crond:
 # Push notification daemon
 pushd:
   image:
-    repository: ghcr.io/revoltchat/pushd
-    tag: 20250210-1
+    repository: ghcr.io/stoatchat/pushd
+    tag: "v0.11.0"
+    pullPolicy: IfNotPresent
+  replicaCount: 1
+  annotations: {}
+  labels: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  resources: {}
+  livenessProbe:
+  readinessProbe:
+  extra_volumes: []
+  extra_volumeMounts: []
+  configMountPath: /Revolt.toml
+
+# Push notification daemon
+voice-ingress:
+  image:
+    repository: ghcr.io/stoatchat/voice-ingress
+    tag: "v0.11.0"
+    pullPolicy: IfNotPresent
+  replicaCount: 1
+  annotations: {}
+  labels: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  resources: {}
+  livenessProbe:
+  readinessProbe:
+  service:
+    type: ClusterIP
+  extra_volumes: []
+  extra_volumeMounts: []
+  configMountPath: /Revolt.toml
+
+# Push notification daemon
+gifbox:
+  image:
+    repository: ghcr.io/stoatchat/gifbox
+    tag: "v0.11.0"
     pullPolicy: IfNotPresent
   replicaCount: 1
   annotations: {}
