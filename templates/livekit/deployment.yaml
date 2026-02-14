@@ -1,83 +1,101 @@
+{{- $root := . -}}
+{{- $fullName := include "stoatchat.fullname" . -}}
+{{- range $instance := .Values.global.livekit }}
+{{- if $instance.name }}
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: "{{ include "stoatchat.fullname" . }}-livekit"
-  namespace: {{ .Values.global.namespace }}
+  name: "{{ $fullName }}-livekit-{{ $instance.name }}"
+  namespace: {{ $root.Values.global.namespace }}
   labels:
-    {{- include "stoatchat.labels" . | nindent 4 }}
-    stoat-app: {{ include "stoatchat.fullname" . }}-livekit
+    {{- include "stoatchat.labels" $root | nindent 4 }}
+    stoat-app: {{ $fullName }}-livekit-{{ $instance.name }}
 spec:
   replicas: 1
   selector:
     matchLabels:
-      {{- include "stoatchat.selectorLabels" . | nindent 6 }}
-      stoat-app: {{ include "stoatchat.fullname" . }}-livekit
+      {{- include "stoatchat.selectorLabels" $root | nindent 6 }}
+      stoat-app: {{ $fullName }}-livekit-{{ $instance.name }}
   template:
     metadata:
-      {{- with .Values.livekit.annotations }}
+      {{- with $root.Values.livekit.annotations }}
       annotations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        stoat-app: {{ include "stoatchat.fullname" . }}-livekit
-        {{- include "stoatchat.labels" . | nindent 8 }}
-        {{- with .Values.livekit.labels }}
+        stoat-app: {{ $fullName }}-livekit-{{ $instance.name }}
+        {{- include "stoatchat.labels" $root | nindent 8 }}
+        {{- with $root.Values.livekit.labels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
     spec:
       containers:
         - name: livekit
-          image: "{{ .Values.livekit.image.repository }}:{{ .Values.livekit.image.tag }}"
-          imagePullPolicy: {{ .Values.livekit.image.pullPolicy }}
+          image: "{{ $root.Values.livekit.image.repository }}:{{ $root.Values.livekit.image.tag }}"
+          imagePullPolicy: {{ $root.Values.livekit.image.pullPolicy }}
           ports:
             - name: http
               containerPort: 7880
               protocol: TCP
+          env:
+            - name: LIVEKIT_CONFIG
+              value: |
+                port: 7880
+                redis:
+                    address: {{ regexFind "[^/]+" (index (splitList "@" ( $root.Values.global.subcharts.redis.connection_url | default (printf "redis://%s-redis-master" $fullName) ) ) 1) }}
+                    username: {{ regexFind "[^:/]+" (trimPrefix "redis://" ( $root.Values.global.subcharts.redis.connection_url | default (printf "redis://%s-redis-master" $fullName) ) | regexFind "[^@]+") | quote }}
+                    password: {{ last (regexFindAll ":[^@]+" (regexFind "[^@]+" (trimPrefix "redis://" ( $root.Values.global.subcharts.redis.connection_url | default (printf "redis://%s-redis-master" $fullName) ) )) -1) | trimPrefix ":" | quote }}
+                webhook:
+                  api_key: {{ $instance.name }}
+                  urls:
+                    - 'http://{{ $fullName }}-voice-ingress:8500/{{ $instance.name }}'
+                logging:
+                  level: debug
+                keys:
+                  {{ $instance.name }}: {{ $instance.secret }}
           livenessProbe:
-            {{- if .Values.livekit.livenessProbe }}
-            {{- toYaml .Values.livekit.livenessProbe | nindent 12 }}
+            {{- if $root.Values.livekit.livenessProbe }}
+            {{- toYaml $root.Values.livekit.livenessProbe | nindent 12 }}
             {{- else }}
             tcpSocket:
-              port: {{ .Values.global.livekit.port }}
+              port: 7880
             initialDelaySeconds: 15
             periodSeconds: 30
             {{- end }}
           readinessProbe:
-            {{- if .Values.livekit.readinessProbe }}
-            {{- toYaml .Values.livekit.readinessProbe | nindent 12 }}
+            {{- if $root.Values.livekit.readinessProbe }}
+            {{- toYaml $root.Values.livekit.readinessProbe | nindent 12 }}
             {{- else }}
             tcpSocket:
-              port: {{ .Values.global.livekit.port }}
+              port: 7880
             initialDelaySeconds: 15
             periodSeconds: 30
             {{- end }}
-          {{- with .Values.livekit.resources }}
+          {{- with $root.Values.livekit.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          volumeMounts:
-            - name: config
-              subPath: Revolt.toml
-              mountPath: {{ .Values.livekit.configMountPath }}
-            {{- with .Values.livekit.extra_volumeMounts }}
-            {{ toYaml . | nindent 12 }}
-            {{- end }}
       volumes:
         - name: config
           configMap:
-            name: {{ include "stoatchat.fullname" . }}-config
-        {{- with .Values.livekit.extra_volumes }}
+            name: {{ $fullName }}-config
+        {{- with $root.Values.livekit.extra_volumes }}
         {{ toYaml . | nindent 8 }}
         {{- end }}
-      {{- with .Values.livekit.nodeSelector }}
+      {{- with $root.Values.livekit.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.livekit.affinity }}
+      {{- $affinity := merge (deepCopy ($instance.affinity | default dict)) ($root.Values.livekit.affinity | default dict) }}
+      {{- if $affinity }}
       affinity:
-        {{- toYaml . | nindent 8 }}
+        {{- toYaml $affinity | nindent 8 }}
       {{- end }}
-      {{- with .Values.livekit.tolerations }}
+      {{- $tolerations := concat ($root.Values.livekit.tolerations | default list) ($instance.tolerations | default list) }}
+      {{- if $tolerations }}
       tolerations:
-        {{- toYaml . | nindent 8 }}
+        {{- toYaml $tolerations | nindent 8 }}
       {{- end }}
+{{- end }}
+{{- end }}

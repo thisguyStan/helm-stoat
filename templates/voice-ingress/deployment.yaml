@@ -1,3 +1,4 @@
+{{- $vi := .Values.voiceIngress -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -7,67 +8,67 @@ metadata:
     {{- include "stoatchat.labels" . | nindent 4 }}
     stoat-app: {{ include "stoatchat.fullname" . }}-voice-ingress
 spec:
-  replicas: {{ .Values.voice-ingress.replicaCount }}
+  replicas: {{ $vi.replicaCount }}
   selector:
     matchLabels:
       {{- include "stoatchat.selectorLabels" . | nindent 6 }}
       stoat-app: {{ include "stoatchat.fullname" . }}-voice-ingress
   template:
     metadata:
-      {{- with .Values.voice-ingress.annotations }}
+      {{- with $vi.annotations }}
       annotations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
         stoat-app: {{ include "stoatchat.fullname" . }}-voice-ingress
         {{- include "stoatchat.labels" . | nindent 8 }}
-        {{- with .Values.voice-ingress.labels }}
+        {{- with $vi.labels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
     spec:
       containers:
         - name: voice-ingress
-          image: "{{ .Values.voice-ingress.image.repository }}:{{ .Values.voice-ingress.image.tag }}"
-          imagePullPolicy: {{ .Values.voice-ingress.image.pullPolicy }}
+          image: "{{ $vi.image.repository }}:{{ $vi.image.tag }}"
+          imagePullPolicy: {{ $vi.image.pullPolicy }}
           ports:
             - name: http
               containerPort: 8500
               protocol: TCP
-          {{- if .Values.voice-ingress.livenessProbe }}
+          {{- if $vi.livenessProbe }}
           livenessProbe:
-            {{- toYaml .Values.voice-ingress.livenessProbe | nindent 12 }}
+            {{- toYaml $vi.livenessProbe | nindent 12 }}
           {{- end }}
-          {{- if .Values.voice-ingress.readinessProbe }}
+          {{- if $vi.readinessProbe }}
           readinessProbe:
-            {{- toYaml .Values.voice-ingress.readinessProbe | nindent 12 }}
+            {{- toYaml $vi.readinessProbe | nindent 12 }}
           {{- end }}
-          {{- with .Values.voice-ingress.resources }}
+          {{- with $vi.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           volumeMounts:
             - name: config
               subPath: Revolt.toml
-              mountPath: {{ .Values.voice-ingress.configMountPath }}
-            {{- with .Values.voice-ingress.extra_volumeMounts }}
+              mountPath: {{ $vi.configMountPath }}
+            {{- with $vi.extra_volumeMounts }}
             {{ toYaml . | nindent 12 }}
             {{- end }}
       volumes:
         - name: config
           configMap:
             name: {{ include "stoatchat.fullname" . }}-config
-        {{- with .Values.voice-ingress.extra_volumes }}
+        {{- with $vi.extra_volumes }}
         {{ toYaml . | nindent 8 }}
         {{- end }}
-      {{- with .Values.voice-ingress.nodeSelector }}
+      {{- with $vi.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.voice-ingress.affinity }}
+      {{- with $vi.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.voice-ingress.tolerations }}
+      {{- with $vi.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}

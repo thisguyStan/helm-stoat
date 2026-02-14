@@ -28,6 +28,8 @@ global:
     subdomain: ''
     # lat: 0.0 # optional
     # lon: 0.0 # optional
+    # affinity: {}      # optional - standard Kubernetes affinity spec    - merged with top-level livekit.affinity (per-instance wins on conflict)
+    # tolerations: []   # optional - standard Kubernetes tolerations list - concatenated with top-level livekit.tolerations
 
   secret:
     vapid_key: ''
@@ -168,7 +170,6 @@ livekit:
     type: ClusterIP
   extra_volumes: []
   extra_volumeMounts: []
-  configMountPath: /livekit.yml
 
 
 # Events service
@@ -274,8 +275,8 @@ pushd:
   extra_volumeMounts: []
   configMountPath: /Revolt.toml
 
-# Push notification daemon
-voice-ingress:
+# Voice ingress service
+voiceIngress:
   image:
     repository: ghcr.io/stoatchat/voice-ingress
     tag: "v0.11.0"

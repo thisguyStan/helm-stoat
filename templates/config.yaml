@@ -1,7 +1,8 @@
+{{- $fullName := include "stoatchat.fullname" . -}}
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "stoatchat.fullname" . }}-config
+  name: {{ $fullName }}-config
   namespace: {{ .Values.global.namespace }}
   annotations:
     "helm.sh/resource-policy": keep
@@ -31,7 +32,7 @@ data:
     # each entry here should have a corresponding entry under `api.livekit.nodes`
     [hosts.livekit]
     {{- range $v := .Values.global.livekit }}
-    {{ $v.name }} = "wss://{{ $v.subdomain }}.{{ .Values.global.domain }}"
+    {{ $v.name }} = "wss://{{ $v.subdomain }}.{{ $.Values.global.domain }}"
     {{- end }}
 
     [pushd.vapid]
@@ -51,7 +52,7 @@ data:
     {{- range $v := .Values.global.livekit }}
 
     [api.livekit.nodes.{{ $v.name }}]
-    url = "http://livekit"
+    url = "http://{{ $fullName }}-livekit-{{ $v.name }}:7880"
     lat = {{ $v.lat | default 0.0 }}
     lon = {{ $v.lon | default 0.0 }}
     key = "{{ $v.name }}"
@@ -73,17 +74,3 @@ data:
     # S3 protocol access key
     secret_access_key = "minioautumn"
     default_bucket = "revolt-uploads"
-  livekit.yml: |
-    port: 7880
-    redis:
-        address: {{ regexFind "[^/]+" (index (splitList "@" ( .Values.global.subcharts.redis.connection_url | default (printf "redis://%s-redis-master" (include "stoatchat.fullname" .)) ) ) 1) }}
-        username: {{ regexFind "[^:/]+" (trimPrefix "redis://" ( .Values.global.subcharts.redis.connection_url | default (printf "redis://%s-redis-master" (include "stoatchat.fullname" .)) ) | regexFind "[^@]+") | quote }}
-        password: {{ index (regexFindAll ":[^@]+" (regexFind "[^@]+" (trimPrefix "redis://" ( .Values.global.subcharts.redis.connection_url | default (printf "redis://%s-redis-master" (include "stoatchat.fullname" .)) ) )) -1) | trimPrefix ":" | quote }}
-    webhook:
-      api_key: {{ .Values.global.secret.livekit_key }}
-      urls:
-        - 'http://{{ include "stoatchat.fullname" . }}-voice-ingress:8500/{{ .Values.global.secret.livekit_key }}'
-    logging:
-      level: debug
-    keys:
-      {{ .Values.global.secret.livekit_key }}: {{ .Values.global.secret.livekit_secret }}

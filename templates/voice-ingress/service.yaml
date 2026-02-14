@@ -1,3 +1,4 @@
+{{- $vi := .Values.voiceIngress -}}
 apiVersion: v1
 kind: Service
 metadata:
@@ -7,7 +8,7 @@ metadata:
     {{- include "stoatchat.labels" . | nindent 4 }}
     stoat-app: {{ include "stoatchat.fullname" . }}-voice-ingress
 spec:
-  type: {{ .Values.voice-ingress.service.type }}
+  type: {{ $vi.service.type }}
   ports:
     - name: http
       targetPort: http

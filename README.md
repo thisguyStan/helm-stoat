@@ -357,26 +357,26 @@ These are the default values we supply for the subcharts.
 | `pushd.configMountPath`               | Config mount path in pod                           | /Revolt.toml             |
 
 
-## Voice-Ingress
+## Voice Ingress
 
 | config                                | description                                        | default                         |
 |---------------------------------------|----------------------------------------------------|---------------------------------|
-| `voice-ingress.image.repository`      | Image repository                                   | ghcr.io/stoatchat/voice-ingress |
-| `voice-ingress.image.tag`             | Image tag                                          | v0.11.0                         |
-| `voice-ingress.image.pullPolicy`      | Image pull policy                                  | IfNotPresent                    |
-| `voice-ingress.replicaCount`          | Number of replicas                                 | 1                               |
-| `voice-ingress.annotations`           | Additional pod annotations                         | `{}`                            |
-| `voice-ingress.labels`                | Additional pod labels                              | `{}`                            |
-| `voice-ingress.nodeSelector`          | Pod nodeSelector                                   | `{}`                            |
-| `voice-ingress.tolerations`           | Pod tolerations list                               | `[]`                            |
-| `voice-ingress.affinity`              | Pod affinity                                       | `{}`                            |
-| `voice-ingress.resources`             | Resource requests and limits                       | `{}`                            |
-| `voice-ingress.livenessProbe`         | Liveness probe                                     |                                 |
-| `voice-ingress.readinessProbe`        | Readiness probe                                    |                                 |
-| `voice-ingress.service.type`          | Service type                                       | ClusterIP                       |
-| `voice-ingress.extra_volumes`         | Additional pod volumes                             | `[]`                            |
-| `voice-ingress.extra_volumeMounts`    | Additional pod volumeMounts                        | `[]`                            |
-| `voice-ingress.configMountPath`       | Config mount path in pod                           | /Revolt.toml                    |
+| `voiceIngress.image.repository`       | Image repository                                   | ghcr.io/stoatchat/voice-ingress |
+| `voiceIngress.image.tag`              | Image tag                                          | v0.11.0                         |
+| `voiceIngress.image.pullPolicy`       | Image pull policy                                  | IfNotPresent                    |
+| `voiceIngress.replicaCount`           | Number of replicas                                 | 1                               |
+| `voiceIngress.annotations`            | Additional pod annotations                         | `{}`                            |
+| `voiceIngress.labels`                 | Additional pod labels                              | `{}`                            |
+| `voiceIngress.nodeSelector`           | Pod nodeSelector                                   | `{}`                            |
+| `voiceIngress.tolerations`            | Pod tolerations list                               | `[]`                            |
+| `voiceIngress.affinity`               | Pod affinity                                       | `{}`                            |
+| `voiceIngress.resources`              | Resource requests and limits                       | `{}`                            |
+| `voiceIngress.livenessProbe`          | Liveness probe                                     |                                 |
+| `voiceIngress.readinessProbe`         | Readiness probe                                    |                                 |
+| `voiceIngress.service.type`           | Service type                                       | ClusterIP                       |
+| `voiceIngress.extra_volumes`          | Additional pod volumes                             | `[]`                            |
+| `voiceIngress.extra_volumeMounts`     | Additional pod volumeMounts                        | `[]`                            |
+| `voiceIngress.configMountPath`        | Config mount path in pod                           | /Revolt.toml                    |
 
 
 ## Gifbox
