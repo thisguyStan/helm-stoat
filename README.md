@@ -1,5 +1,5 @@
 <p align="center">
-  <img width="100" src="https://avatars.githubusercontent.com/u/57727799?s=200&v=4" style="vertical-align: middle; margin: 0 1.5rem" />
+  <img width="100" src="https://avatars.githubusercontent.com/u/234249415?s=200&v=4" style="vertical-align: middle; margin: 0 1.5rem" />
   <img src="https://github.com/kubernetes/kubernetes/raw/master/logo/logo.png" width="60" style="vertical-align: middle;" />
 </p>
 
@@ -24,7 +24,7 @@ To use the minimal setup, you will require
 
 1. Generate required config keys.  We provide a script to run in docker to generate it in this repo.
    ```shell
-   docker run --entrypoint /bin/ash -v ./:/data alpine/openssl /data/generate_config.sh
+   docker run --entrypoint /bin/ash -v ./:/data alpine/openssl /data/generate_keys.sh
    ```
 2. Fill out required config
     ```yaml
@@ -95,46 +95,219 @@ global:
 | Chart Option                                  | Description                                              | Default        |
 |-----------------------------------------------|----------------------------------------------------------|----------------|
 | `global.namespace`                            | Namespace for the chart services                         | `'stoatchat'`  |
-| `global.domain`  **REQUIRED**                 | Domain name used for access (e.g. ) `stoat.example.com`  | `''`           |
+| `global.domain`  **REQUIRED**                 | Domain name used for access (e.g. `stoat.example.com`)   | `''`           |
 | `global.secret.vapid_key` **REQUIRED**        | VAPID private key for push notifications                 | `''`           |
 | `global.secret.vapid_public_key` **REQUIRED** | VAPID public key for push notifications                  | `''`           |
 | `global.secret.encryption_key` **REQUIRED**   | Encryption key for sensitive data                        | `''`           |
-| `global.livekit.x.name` **REQUIRED**          | Livekit name, also used for the key                      | `''`           |
-| `global.livekit.x.secret` **REQUIRED**        | Livekit secret                                           | `''`           |
-| `global.livekit.x.subdomain` **REQUIRED**     | Livekit domain in format <subdomain>.<global.domain>     | `''`           |
-| `global.livekit.x.lat`                        | Livekit latitude                                         | `''`           |
-| `global.livekit.x.lon`                        | Livekit longitude                                        | `''`           |
+
+### Ports
+
+| Chart Option                                  | Description                                              | Default        |
+|-----------------------------------------------|----------------------------------------------------------|----------------|
 | `global.web.port`                             | Port for the web frontend                                | `5000`         |
 | `global.api.port`                             | Port for the API server                                  | `14702`        |
 | `global.bonfire.port`                         | Port for the bonfire events service                      | `14703`        |
 | `global.autumn.port`                          | Port for the autumn file server                          | `14704`        |
 | `global.january.port`                         | Port for the january metadata proxy                      | `14705`        |
-| `global.crond.port`                           | Port for the crond scheduler                             | `80`           |
-| `global.pushd.port`                           | Port for the pushd notification service                  | `80`           |
+| `global.gifbox.port`                          | Port for the gifbox GIF service                          | `14706`        |
+
+### LiveKit Instances
+
+LiveKit is configured as a list under `global.livekit`. Each entry represents a LiveKit node.
+
+| Chart Option                                  | Description                                              | Default        |
+|-----------------------------------------------|----------------------------------------------------------|----------------|
+| `global.livekit[].name` **REQUIRED**          | Instance name, also used as the API key                  | `''`           |
+| `global.livekit[].secret` **REQUIRED***       | API secret for this instance                             | `''`           |
+| `global.livekit[].subdomain` **REQUIRED**     | Subdomain in format `<subdomain>.<global.domain>`        | `''`           |
+| `global.livekit[].existingSecret`             | Name of an existing Secret containing `keys.yaml` (e.g. CSI-backed). When set, Helm does not create a secret for this instance. | |
+| `global.livekit[].lat`                        | Latitude for geo-routing                                 | `0.0`          |
+| `global.livekit[].lon`                        | Longitude for geo-routing                                | `0.0`          |
+| `global.livekit[].affinity`                   | Per-instance affinity (merged with `livekit.affinity`)   | `{}`           |
+| `global.livekit[].tolerations`                | Per-instance tolerations (appended to `livekit.tolerations`) | `[]`       |
+
+\* `secret` is required only when `existingSecret` is not set.
+
+**Using an existing secret (e.g. Azure Key Vault CSI):**
+
+If you manage secrets externally (e.g. via `SecretProviderClass`), set `existingSecret` to the name of your Kubernetes Secret. The secret must contain a key named `keys.yaml` with content in the format:
+```yaml
+<instance-name>: <api-secret>
+```
+
+When `existingSecret` is set, Helm skips creating a managed secret and mounts the existing one directly.
+
+### Application Configuration
+
+#### Registration
+
+| Chart Option                                           | Description                                   | Default |
+|--------------------------------------------------------|-----------------------------------------------|---------|
+| `global.config.registration.invite_only`               | Require invite codes for registration         | `false` |
+
+#### SMTP (Email)
+
+Leave `host` empty to disable email verification.
+
+| Chart Option                                           | Description                                   | Default                |
+|--------------------------------------------------------|-----------------------------------------------|------------------------|
+| `global.config.smtp.host`                              | SMTP server hostname                          | `''`                   |
+| `global.config.smtp.username`                          | SMTP username                                 | `''`                   |
+| `global.config.smtp.password`                          | SMTP password                                 | `''`                   |
+| `global.config.smtp.from_address`                      | Email sender address                          | `'noreply@example.com'`|
+| `global.config.smtp.port`                              | SMTP port                                     | _(commented out)_      |
+| `global.config.smtp.use_tls`                           | Use TLS for SMTP                              | _(commented out)_      |
+| `global.config.smtp.reply_to`                          | Reply-to address                              | _(commented out)_      |
+
+#### Security
+
+| Chart Option                                           | Description                                   | Default |
+|--------------------------------------------------------|-----------------------------------------------|---------|
+| `global.config.security.trust_cloudflare`              | Enable if behind Cloudflare proxy             | `false` |
+| `global.config.security.authifier_shield_key`          | Authifier Shield API key                      | `''`    |
+| `global.config.security.tenor_key`                     | Tenor GIF API key                             | `''`    |
+| `global.config.security.captcha.hcaptcha_key`          | hCaptcha secret key                           | `''`    |
+| `global.config.security.captcha.hcaptcha_sitekey`      | hCaptcha site key                             | `''`    |
+
+#### Features
+
+| Chart Option                                           | Description                                   | Default |
+|--------------------------------------------------------|-----------------------------------------------|---------|
+| `global.config.features.webhooks_enabled`              | Enable webhook support                        | `false` |
+| `global.config.features.mass_mentions_send_notifications` | Send notifications for mass mentions       | `true`  |
+| `global.config.features.mass_mentions_enabled`         | Enable mass mentions                          | `true`  |
+
+#### Files
+
+| Chart Option                                           | Description                                   | Default |
+|--------------------------------------------------------|-----------------------------------------------|---------|
+| `global.config.files.webp_quality`                     | WebP preview quality (1-100)                  | `80.0`  |
+| `global.config.files.blocked_mime_types`               | List of blocked MIME types                    | `[]`    |
+| `global.config.files.clamd_host`                       | ClamAV antivirus host:port (empty = disabled) | `''`    |
+
+#### LiveKit API Settings
+
+| Chart Option                                           | Description                                   | Default |
+|--------------------------------------------------------|-----------------------------------------------|---------|
+| `global.config.livekit.call_ring_duration`             | How long to ring devices when calling (seconds) | `30`  |
+
+#### Push Notifications
+
+Leave empty to disable.
+
+**FCM (Firebase Cloud Messaging):**
+
+| Chart Option                                           | Description                                   | Default |
+|--------------------------------------------------------|-----------------------------------------------|---------|
+| `global.config.pushd.fcm.key_type`                    | Service account key type                      | `''`    |
+| `global.config.pushd.fcm.project_id`                  | Firebase project ID                           | `''`    |
+| `global.config.pushd.fcm.private_key_id`              | Private key ID                                | `''`    |
+| `global.config.pushd.fcm.private_key`                 | Private key (PEM)                             | `''`    |
+| `global.config.pushd.fcm.client_email`                | Service account email                         | `''`    |
+| `global.config.pushd.fcm.client_id`                   | Client ID                                     | `''`    |
+| `global.config.pushd.fcm.auth_uri`                    | Auth URI                                      | `''`    |
+| `global.config.pushd.fcm.token_uri`                   | Token URI                                     | `''`    |
+| `global.config.pushd.fcm.auth_provider_x509_cert_url` | Auth provider cert URL                        | `''`    |
+| `global.config.pushd.fcm.client_x509_cert_url`        | Client cert URL                               | `''`    |
+
+**APN (Apple Push Notifications):**
+
+| Chart Option                                           | Description                                   | Default |
+|--------------------------------------------------------|-----------------------------------------------|---------|
+| `global.config.pushd.apn.sandbox`                     | Use APN sandbox                               | `false` |
+| `global.config.pushd.apn.pkcs8`                       | PKCS8 private key                             | `''`    |
+| `global.config.pushd.apn.key_id`                      | APN key ID                                    | `''`    |
+| `global.config.pushd.apn.team_id`                     | Apple team ID                                 | `''`    |
+
+#### Sentry
+
+DSNs for error reporting. Leave empty to disable.
+
+| Chart Option                                           | Description                                   | Default |
+|--------------------------------------------------------|-----------------------------------------------|---------|
+| `global.config.sentry.api`                             | Sentry DSN for API                            | `''`    |
+| `global.config.sentry.events`                          | Sentry DSN for events                         | `''`    |
+| `global.config.sentry.voice_ingress`                   | Sentry DSN for voice ingress                  | `''`    |
+| `global.config.sentry.files`                           | Sentry DSN for file server                    | `''`    |
+| `global.config.sentry.proxy`                           | Sentry DSN for proxy                          | `''`    |
+| `global.config.sentry.pushd`                           | Sentry DSN for push daemon                    | `''`    |
+| `global.config.sentry.crond`                           | Sentry DSN for cron daemon                    | `''`    |
+| `global.config.sentry.gifbox`                          | Sentry DSN for gifbox                         | `''`    |
+
+#### Limits
+
+Feature limits control resource usage per user tier. See `values.yaml` for the full structure.
+
+**Global limits:**
+
+| Chart Option                                           | Description                                   | Default    |
+|--------------------------------------------------------|-----------------------------------------------|------------|
+| `global.config.limits.global.group_size`               | Max group size                                | `100`      |
+| `global.config.limits.global.message_embeds`           | Max embeds per message                        | `5`        |
+| `global.config.limits.global.message_replies`          | Max replies per message                       | `5`        |
+| `global.config.limits.global.message_reactions`        | Max reactions per message                     | `20`       |
+| `global.config.limits.global.server_emoji`             | Max emoji per server                          | `100`      |
+| `global.config.limits.global.server_roles`             | Max roles per server                          | `200`      |
+| `global.config.limits.global.server_channels`          | Max channels per server                       | `200`      |
+| `global.config.limits.global.new_user_hours`           | Hours until user is no longer "new"           | `72`       |
+| `global.config.limits.global.body_limit_size`          | Max request body size (bytes)                 | `20000000` |
+
+**New user limits** (`global.config.limits.new_user.*`) and **default user limits** (`global.config.limits.default.*`) share the same structure:
+
+| Chart Option (replace `<tier>` with `new_user` or `default`) | Description                        | New User Default | Default |
+|---------------------------------------------------------------|------------------------------------|------------------|---------|
+| `global.config.limits.<tier>.outgoing_friend_requests`        | Max outgoing friend requests       | `5`              | `10`    |
+| `global.config.limits.<tier>.bots`                            | Max bots                           | `2`              | `5`     |
+| `global.config.limits.<tier>.message_length`                  | Max message length (chars)         | `2000`           | `2000`  |
+| `global.config.limits.<tier>.message_attachments`             | Max attachments per message        | `5`              | `5`     |
+| `global.config.limits.<tier>.servers`                         | Max servers                        | `50`             | `100`   |
+| `global.config.limits.<tier>.voice_quality`                   | Voice quality (bitrate)            | `16000`          | `16000` |
+| `global.config.limits.<tier>.video`                           | Video calls enabled                | `true`           | `true`  |
+| `global.config.limits.<tier>.video_resolution`                | Max video resolution [w, h]        | `[1080, 720]`    | `[1080, 720]` |
+| `global.config.limits.<tier>.video_aspect_ratio`              | Allowed aspect ratio range [min, max] | `[0.3, 2.5]` | `[0.3, 2.5]` |
+| `global.config.limits.<tier>.file_upload_size_limit.attachments` | Max attachment size (bytes)     | `20000000`       | `20000000` |
+| `global.config.limits.<tier>.file_upload_size_limit.avatars`     | Max avatar size (bytes)         | `4000000`        | `4000000`  |
+| `global.config.limits.<tier>.file_upload_size_limit.backgrounds` | Max background size (bytes)     | `6000000`        | `6000000`  |
+| `global.config.limits.<tier>.file_upload_size_limit.icons`       | Max icon size (bytes)           | `2500000`        | `2500000`  |
+| `global.config.limits.<tier>.file_upload_size_limit.banners`     | Max banner size (bytes)         | `6000000`        | `6000000`  |
+| `global.config.limits.<tier>.file_upload_size_limit.emojis`      | Max emoji size (bytes)          | `500000`         | `500000`   |
+
+### Ingress
+
+| Chart Option                                  | Description                                              | Default        |
+|-----------------------------------------------|----------------------------------------------------------|----------------|
 | `global.ingress.enabled`                      | Enable Kubernetes Ingress                                | `false`        |
-| `global.ingress.className`                    | Ingress class name (e.g., ) `nginx`                      | `''`           |
+| `global.ingress.className`                    | Ingress class name (e.g. `nginx`)                        | `''`           |
 | `global.ingress.annotations`                  | Additional Ingress annotations (map)                     | `{}`           |
 | `global.ingress.extra_hosts`                  | Additional hosts for Ingress (list)                      | `[]`           |
+
+### Service Account
+
+| Chart Option                                  | Description                                              | Default        |
+|-----------------------------------------------|----------------------------------------------------------|----------------|
 | `global.serviceAccount.create`                | Whether to create a Kubernetes service account           | `true`         |
 | `global.serviceAccount.automount`             | Automount service account tokens                         | `true`         |
 | `global.serviceAccount.annotations`           | Additional annotations for ServiceAccount                | `{}`           |
 | `global.serviceAccount.name`                  | ServiceAccount name override                             | `''`           |
+
+### Subcharts
+
+| Chart Option                                  | Description                                              | Default        |
+|-----------------------------------------------|----------------------------------------------------------|----------------|
 | `global.subcharts.mongodb.enabled`            | Enable built-in MongoDB subchart                         | `true`         |
 | `global.subcharts.mongodb.connection_url`     | MongoDB connection string (if using external)            | `''`           |
 | `global.subcharts.redis.enabled`              | Enable built-in Redis subchart                           | `true`         |
 | `global.subcharts.redis.connection_url`       | Redis connection string (if using external)              | `''`           |
 | `global.subcharts.minio.enabled`              | Enable built-in MinIO subchart                           | `true`         |
 | `global.subcharts.minio.connection_url`       | MinIO connection string (if using external)              | `''`           |
-| `global.subcharts.rabbitmq.enabled`           | Enable built-in RabbitMQ subhcart                        | `true`         |
+| `global.subcharts.rabbitmq.enabled`           | Enable built-in RabbitMQ subchart                        | `true`         |
 | `global.subcharts.rabbitmq.host`              | RabbitMQ hostname (if using external)                    | `''`           |
 | `global.subcharts.rabbitmq.port`              | RabbitMQ port (if using external)                        | `5672`         |
 | `global.subcharts.rabbitmq.username`          | RabbitMQ username                                        | `'rabbituser'` |
 | `global.subcharts.rabbitmq.password`          | RabbitMQ password                                        | `'rabbitpass'` |
 
 
-## Component Specific Settings
-
-### Subcharts
+## Subchart Defaults
 
 MongoDB, Redis, MinIO, and RabbitMQ are all subcharts.  Consult their respective documentation for more information.
 
@@ -143,11 +316,11 @@ MongoDB, Redis, MinIO, and RabbitMQ are all subcharts.  Consult their respective
 - MinIO: https://github.com/bitnami/charts/tree/main/bitnami/minio#parameters
 - RabbitMQ: https://github.com/bitnami/charts/tree/main/bitnami/rabbitmq#parameters
 
-These are the default values we supply for the subcharts.
+Here are some default values for testing of the subcharts.
 
 #### MongoDB
 
-| config                          | description                                    | default     |
+| Config                          | Description                                    | Default     |
 |---------------------------------|------------------------------------------------|-------------|
 | `mongodb.architecture`          | MongoDB deployment mode                        | standalone  |
 | `mongodb.auth.enabled`          | Enable auth                                    | false       |
@@ -155,7 +328,7 @@ These are the default values we supply for the subcharts.
 
 #### Redis
 
-| config                              | description                                    | default     |
+| Config                              | Description                                    | Default     |
 |-------------------------------------|------------------------------------------------|-------------|
 | `redis.architecture`                | Redis deployment mode                          | standalone  |
 | `redis.auth.enabled`                | Enable auth                                    | false       |
@@ -163,7 +336,7 @@ These are the default values we supply for the subcharts.
 
 #### RabbitMQ
 
-| config                            | description                                    | default         |
+| Config                            | Description                                    | Default         |
 |-----------------------------------|------------------------------------------------|-----------------|
 | `rabbitmq.replicaCount`           | Number of RabbitMQ replicas                    | 1               |
 | `rabbitmq.auth.username`          | RabbitMQ username                              | rabbituser      |
@@ -172,7 +345,7 @@ These are the default values we supply for the subcharts.
 
 #### MinIO
 
-| config                              | description                                    | default         |
+| Config                              | Description                                    | Default         |
 |-------------------------------------|------------------------------------------------|-----------------|
 | `minio.mode`                        | MinIO deployment mode                          | standalone      |
 | `minio.rootUser`                    | MinIO root user                                | minioautumn     |
@@ -182,221 +355,42 @@ These are the default values we supply for the subcharts.
 | `minio.auth.rootPassword`           | MinIO root password for auth section           | minioautumn     |
 
 
-### Revolt Services
+## Component Images
 
----
+All service deployments support the following common settings. Replace `<component>` with the service name (e.g. `api`, `bonfire`, `autumn`, etc.):
 
-## Web App
+| Config                                | Description                                        | 
+|---------------------------------------|----------------------------------------------------|
+| `<component>.image.repository`        | Image repository                                   |
+| `<component>.image.tag`               | Image tag                                          |
+| `<component>.image.pullPolicy`        | Image pull policy                                  |
+| `<component>.replicaCount`            | Number of replicas                                 |
+| `<component>.annotations`             | Additional pod annotations                         |
+| `<component>.labels`                  | Additional pod labels                              |
+| `<component>.nodeSelector`            | Pod nodeSelector                                   |
+| `<component>.tolerations`             | Pod tolerations list                               |
+| `<component>.affinity`                | Pod affinity                                       |
+| `<component>.resources`               | Resource requests and limits                       |
+| `<component>.livenessProbe`           | Liveness probe config                              |
+| `<component>.readinessProbe`          | Readiness probe config                             |
+| `<component>.service.type`            | Service type (where applicable)                    |
+| `<component>.extra_volumes`           | Additional pod volumes                             |
+| `<component>.extra_volumeMounts`      | Additional pod volumeMounts                        |
+| `<component>.configMountPath`         | Config mount path in pod (where applicable)        |
 
-| config                                | description                                        | default                             |
-|---------------------------------------|----------------------------------------------------|-------------------------------------|
-| `web.image.repository`                | Image repository                                   | ghcr.io/YOUR_USERNAME/stoat-for-web |
-| `web.image.tag`                       | Image tag                                          | v0.1.0                              |
-| `web.image.pullPolicy`                | Image pull policy                                  | IfNotPresent                        |
-| `web.annotations`                     | Additional pod annotations                         | `{}`                                |
-| `web.labels`                          | Additional pod labels                              | `{}`                                |
-| `web.nodeSelector`                    | Pod nodeSelector                                   | `{}`                                |
-| `web.tolerations`                     | Pod tolerations list                               | `[]`                                |
-| `web.affinity`                        | Pod affinity                                       | `{}`                                |
-| `web.replicaCount`                    | Number of replicas                                 | 1                                   |
-| `web.resources`                       | Resource requests and limits                       | `{}`                                |
-| `web.livenessProbe`                   | Liveness probe                                     |                                     |
-| `web.readinessProbe`                  | Readiness probe                                    |                                     |
-| `web.service.type`                    | Service type                                       | ClusterIP                           |
-| `web.extra_volumes`                   | Additional pod volumes                             | `[]`                                |
-| `web.extra_volumeMounts`              | Additional pod volumeMounts                        | `[]`                                |
+### Default Image Tags
 
-
-## Livekit Server
-
-| config                                | description                                        | default                          |
-|---------------------------------------|----------------------------------------------------|----------------------------------|
-| `livekit.image.repository`            | Image repository                                   | ghcr.io/stoatchat/livekit-server |
-| `livekit.image.tag`                   | Image tag                                          | v1.9.9                           |
-| `livekit.image.pullPolicy`            | Image pull policy                                  | IfNotPresent                     |
-| `livekit.annotations`                 | Additional pod annotations                         | `{}`                             |
-| `livekit.labels`                      | Additional pod labels                              | `{}`                             |
-| `livekit.nodeSelector`                | Pod nodeSelector                                   | `{}`                             |
-| `livekit.tolerations`                 | Pod tolerations list                               | `[]`                             |
-| `livekit.affinity`                    | Pod affinity                                       | `{}`                             |
-| `livekit.resources`                   | Resource requests and limits                       | `{}`                             |
-| `livekit.livenessProbe`               | Liveness probe                                     |                                  |
-| `livekit.readinessProbe`              | Readiness probe                                    |                                  |
-| `livekit.service.type`                | Service type                                       | ClusterIP                        |
-| `livekit.extra_volumes`               | Additional pod volumes                             | `[]`                             |
-| `livekit.extra_volumeMounts`          | Additional pod volumeMounts                        | `[]`                             |
-| `livekit.configMountPath`             | Config mount path in pod                           | /livekit.yml                     |
-
-
-## API Server
-
-| config                                | description                                        | default                   |
-|---------------------------------------|----------------------------------------------------|---------------------------|
-| `api.image.repository`                | Image repository                                   | ghcr.io/stoatchat/api     |
-| `api.image.tag`                       | Image tag                                          | v0.11.0                   |
-| `api.image.pullPolicy`                | Image pull policy                                  | IfNotPresent              |
-| `api.replicaCount`                    | Number of replicas                                 | 1                         |
-| `api.annotations`                     | Additional pod annotations                         | `{}`                      |
-| `api.labels`                          | Additional pod labels                              | `{}`                      |
-| `api.nodeSelector`                    | Pod nodeSelector                                   | `{}`                      |
-| `api.tolerations`                     | Pod tolerations list                               | `[]`                      |
-| `api.affinity`                        | Pod affinity                                       | `{}`                      |
-| `api.resources`                       | Resource requests and limits                       | `{}`                      |
-| `api.livenessProbe`                   | Liveness probe                                     |                           |
-| `api.readinessProbe`                  | Readiness probe                                    |                           |
-| `api.service.type`                    | Service type                                       | ClusterIP                 |
-| `api.extra_volumes`                   | Additional pod volumes                             | `[]`                      |
-| `api.extra_volumeMounts`              | Additional pod volumeMounts                        | `[]`                      |
-| `api.configMountPath`                 | Config mount path in pod                           | /Revolt.toml              |
-
-
-## Bonfire 
-
-| config                                | description                                        | default                    |
-|---------------------------------------|----------------------------------------------------|----------------------------|
-| `bonfire.image.repository`            | Image repository                                   | ghcr.io/stoatchat/events   |
-| `bonfire.image.tag`                   | Image tag                                          | v0.11.0                    |
-| `bonfire.image.pullPolicy`            | Image pull policy                                  | IfNotPresent               |
-| `bonfire.replicaCount`                | Number of replicas                                 | 1                          |
-| `bonfire.annotations`                 | Additional pod annotations                         | `{}`                       |
-| `bonfire.labels`                      | Additional pod labels                              | `{}`                       |
-| `bonfire.nodeSelector`                | Pod nodeSelector                                   | `{}`                       |
-| `bonfire.tolerations`                 | Pod tolerations list                               | `[]`                       |
-| `bonfire.affinity`                    | Pod affinity                                       | `{}`                       |
-| `bonfire.resources`                   | Resource requests and limits                       | `{}`                       |
-| `bonfire.livenessProbe`               | Liveness probe                                     |                            |
-| `bonfire.readinessProbe`              | Readiness probe                                    |                            |
-| `bonfire.service.type`                | Service type                                       | ClusterIP                  |
-| `bonfire.extra_volumes`               | Additional pod volumes                             | `[]`                       |
-| `bonfire.extra_volumeMounts`          | Additional pod volumeMounts                        | `[]`                       |
-| `bonfire.configMountPath`             | Config mount path in pod                           | /Revolt.toml               |
-
-
-## Autumn
-
-| config                                | description                                        | default                        |
-|---------------------------------------|----------------------------------------------------|--------------------------------|
-| `autumn.image.repository`             | Image repository                                   | ghcr.io/stoatchat/file-server  |
-| `autumn.image.tag`                    | Image tag                                          | v0.11.0                        |
-| `autumn.image.pullPolicy`             | Image pull policy                                  | IfNotPresent                   |
-| `autumn.replicaCount`                 | Number of replicas                                 | 1                              |
-| `autumn.annotations`                  | Additional pod annotations                         | `{}`                           |
-| `autumn.labels`                       | Additional pod labels                              | `{}`                           |
-| `autumn.nodeSelector`                 | Pod nodeSelector                                   | `{}`                           |
-| `autumn.tolerations`                  | Pod tolerations list                               | `[]`                           |
-| `autumn.affinity`                     | Pod affinity                                       | `{}`                           |
-| `autumn.resources`                    | Resource requests and limits                       | `{}`                           |
-| `autumn.livenessProbe`                | Liveness probe                                     | `{}` (empty by default)        |
-| `autumn.readinessProbe`               | Readiness probe                                    |                                |
-| `autumn.service.type`                 | Service type                                       | ClusterIP                      |
-| `autumn.extra_volumes`                | Additional pod volumes                             | `[]`                           |
-| `autumn.extra_volumeMounts`           | Additional pod volumeMounts                        | `[]`                           |
-| `autumn.configMountPath`              | Config mount path in pod                           | /Revolt.toml                   |
-
-## January
-
-| config                                | description                                        | default                    |
-|---------------------------------------|----------------------------------------------------|----------------------------|
-| `january.image.repository`            | Image repository                                   | ghcr.io/stoatchat/proxy    |
-| `january.image.tag`                   | Image tag                                          | v0.11.0                    |
-| `january.image.pullPolicy`            | Image pull policy                                  | IfNotPresent               |
-| `january.replicaCount`                | Number of replicas                                 | 1                          |
-| `january.annotations`                 | Additional pod annotations                         | `{}`                       |
-| `january.labels`                      | Additional pod labels                              | `{}`                       |
-| `january.nodeSelector`                | Pod nodeSelector                                   | `{}`                       |
-| `january.tolerations`                 | Pod tolerations list                               | `[]`                       |
-| `january.affinity`                    | Pod affinity                                       | `{}`                       |
-| `january.resources`                   | Resource requests and limits                       | `{}`                       |
-| `january.livenessProbe`               | Liveness probe                                     |                            |
-| `january.readinessProbe`              | Readiness probe                                    |                            |
-| `january.service.type`                | Service type                                       | ClusterIP                  |
-| `january.extra_volumes`               | Additional pod volumes                             | `[]`                       |
-| `january.extra_volumeMounts`          | Additional pod volumeMounts                        | `[]`                       |
-| `january.configMountPath`             | Config mount path in pod                           | /Revolt.toml               |
-
-
-## Crond
-
-| config                                | description                                        | default                  |
-|---------------------------------------|----------------------------------------------------|--------------------------|
-| `crond.image.repository`              | Image repository                                   | ghcr.io/stoatchat/crond  |
-| `crond.image.tag`                     | Image tag                                          | v0.11.0                  |
-| `crond.image.pullPolicy`              | Image pull policy                                  | IfNotPresent             |
-| `crond.replicaCount`                  | Number of replicas                                 | 1                        |
-| `crond.annotations`                   | Additional pod annotations                         | `{}`                     |
-| `crond.labels`                        | Additional pod labels                              | `{}`                     |
-| `crond.nodeSelector`                  | Pod nodeSelector                                   | `{}`                     |
-| `crond.tolerations`                   | Pod tolerations list                               | `[]`                     |
-| `crond.affinity`                      | Pod affinity                                       | `{}`                     |
-| `crond.resources`                     | Resource requests and limits                       | `{}`                     |
-| `crond.livenessProbe`                 | Liveness probe                                     |                          |
-| `crond.readinessProbe`                | Readiness probe                                    |                          |
-| `crond.extra_volumes`                 | Additional pod volumes                             | `[]`                     |
-| `crond.extra_volumeMounts`            | Additional pod volumeMounts                        | `[]`                     |
-| `crond.configMountPath`               | Config mount path in pod                           | /Revolt.toml             |
-
-
-## Pushd
-
-| config                                | description                                        | default                  |
-|---------------------------------------|----------------------------------------------------|--------------------------|
-| `pushd.image.repository`              | Image repository                                   | ghcr.io/stoatchat/pushd  |
-| `pushd.image.tag`                     | Image tag                                          | v0.11.0                  |
-| `pushd.image.pullPolicy`              | Image pull policy                                  | IfNotPresent             |
-| `pushd.replicaCount`                  | Number of replicas                                 | 1                        |
-| `pushd.annotations`                   | Additional pod annotations                         | `{}`                     |
-| `pushd.labels`                        | Additional pod labels                              | `{}`                     |
-| `pushd.nodeSelector`                  | Pod nodeSelector                                   | `{}`                     |
-| `pushd.tolerations`                   | Pod tolerations list                               | `[]`                     |
-| `pushd.affinity`                      | Pod affinity                                       | `{}`                     |
-| `pushd.resources`                     | Resource requests and limits                       | `{}`                     |
-| `pushd.livenessProbe`                 | Liveness probe                                     |                          |
-| `pushd.readinessProbe`                | Readiness probe                                    |                          |
-| `pushd.extra_volumes`                 | Additional pod volumes                             | `[]`                     |
-| `pushd.extra_volumeMounts`            | Additional pod volumeMounts                        | `[]`                     |
-| `pushd.configMountPath`               | Config mount path in pod                           | /Revolt.toml             |
-
-
-## Voice Ingress
-
-| config                                | description                                        | default                         |
-|---------------------------------------|----------------------------------------------------|---------------------------------|
-| `voiceIngress.image.repository`       | Image repository                                   | ghcr.io/stoatchat/voice-ingress |
-| `voiceIngress.image.tag`              | Image tag                                          | v0.11.0                         |
-| `voiceIngress.image.pullPolicy`       | Image pull policy                                  | IfNotPresent                    |
-| `voiceIngress.replicaCount`           | Number of replicas                                 | 1                               |
-| `voiceIngress.annotations`            | Additional pod annotations                         | `{}`                            |
-| `voiceIngress.labels`                 | Additional pod labels                              | `{}`                            |
-| `voiceIngress.nodeSelector`           | Pod nodeSelector                                   | `{}`                            |
-| `voiceIngress.tolerations`            | Pod tolerations list                               | `[]`                            |
-| `voiceIngress.affinity`               | Pod affinity                                       | `{}`                            |
-| `voiceIngress.resources`              | Resource requests and limits                       | `{}`                            |
-| `voiceIngress.livenessProbe`          | Liveness probe                                     |                                 |
-| `voiceIngress.readinessProbe`         | Readiness probe                                    |                                 |
-| `voiceIngress.service.type`           | Service type                                       | ClusterIP                       |
-| `voiceIngress.extra_volumes`          | Additional pod volumes                             | `[]`                            |
-| `voiceIngress.extra_volumeMounts`     | Additional pod volumeMounts                        | `[]`                            |
-| `voiceIngress.configMountPath`        | Config mount path in pod                           | /Revolt.toml                    |
-
-
-## Gifbox
-
-| config                                | description                                        | default                  |
-|---------------------------------------|----------------------------------------------------|--------------------------|
-| `gifbox.image.repository`              | Image repository                                  | ghcr.io/stoatchat/gifbox |
-| `gifbox.image.tag`                     | Image tag                                         | v0.11.0                  |
-| `gifbox.image.pullPolicy`              | Image pull policy                                 | IfNotPresent             |
-| `gifbox.replicaCount`                  | Number of replicas                                | 1                        |
-| `gifbox.annotations`                   | Additional pod annotations                        | `{}`                     |
-| `gifbox.labels`                        | Additional pod labels                             | `{}`                     |
-| `gifbox.nodeSelector`                  | Pod nodeSelector                                  | `{}`                     |
-| `gifbox.tolerations`                   | Pod tolerations list                              | `[]`                     |
-| `gifbox.affinity`                      | Pod affinity                                      | `{}`                     |
-| `gifbox.resources`                     | Resource requests and limits                      | `{}`                     |
-| `gifbox.livenessProbe`                 | Liveness probe                                    |                          |
-| `gifbox.readinessProbe`                | Readiness probe                                   |                          |
-| `gifbox.extra_volumes`                 | Additional pod volumes                            | `[]`                     |
-| `gifbox.extra_volumeMounts`            | Additional pod volumeMounts                       | `[]`                     |
-| `gifbox.configMountPath`               | Config mount path in pod                          | /Revolt.toml             |
+| Service        | Image                                  | Default Tag |
+|----------------|----------------------------------------|-------------|
+| Web App        | `ghcr.io/YOUR_USERNAME/stoat-for-web`  | `v0.1.0` (requires custom build — see `build/BUILD-IMAGES.md`) |
+| API Server     | `ghcr.io/stoatchat/api`                | `v0.11.1`   |
+| LiveKit Server | `ghcr.io/stoatchat/livekit-server`     | `v1.9.9`    |
+| Bonfire        | `ghcr.io/stoatchat/events`             | `v0.11.1`   |
+| Autumn         | `ghcr.io/stoatchat/file-server`        | `v0.11.1`   |
+| January        | `ghcr.io/stoatchat/proxy`              | `v0.11.1`   |
+| Crond          | `ghcr.io/stoatchat/crond`              | `v0.11.1`   |
+| Pushd          | `ghcr.io/stoatchat/pushd`              | `v0.11.1`   |
+| Voice Ingress  | `ghcr.io/stoatchat/voice-ingress`      | `v0.11.1`   |
+| Gifbox         | `ghcr.io/stoatchat/gifbox`             | `v0.11.1`   |
 
 

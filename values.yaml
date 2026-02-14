@@ -7,7 +7,7 @@
 global:
   namespace: 'stoatchat'
   # Domain name used for access, ex stoat.example.com
-  domain: ''
+  domain: 'stoat.example.com'
 
   web:
     port: 5000
@@ -23,9 +23,11 @@ global:
     port: 14706
 
   livekit:
-  - name: ''
+  - name: 'worldwide'
     secret: ''
     subdomain: ''
+    # existingSecret: ''  # optional - name of an existing Secret containing keys.yaml (e.g. CSI-backed)
+    # host: ''            # optional - format in the file must be "<name>: <secret>" where name matches the instance name (e.g. "worldwide: mysecretvalue") 
     # lat: 0.0 # optional
     # lon: 0.0 # optional
     # affinity: {}      # optional - standard Kubernetes affinity spec    - merged with top-level livekit.affinity (per-instance wins on conflict)
@@ -258,7 +260,7 @@ web:
 api:
   image:
     repository: ghcr.io/stoatchat/api
-    tag: "v0.11.0"
+    tag: "v0.11.1"
     pullPolicy: IfNotPresent
   replicaCount: 1
   annotations: {}
@@ -298,7 +300,7 @@ livekit:
 bonfire:
   image:
     repository: ghcr.io/stoatchat/events
-    tag: "v0.11.0"
+    tag: "v0.11.1"
     pullPolicy: IfNotPresent
   replicaCount: 1
   annotations: {}
@@ -320,7 +322,7 @@ bonfire:
 autumn:
   image:
     repository: ghcr.io/stoatchat/file-server
-    tag: "v0.11.0"
+    tag: "v0.11.1"
     pullPolicy: IfNotPresent
   replicaCount: 1
   annotations: {}
@@ -342,7 +344,7 @@ autumn:
 january:
   image:
     repository: ghcr.io/stoatchat/proxy
-    tag: "v0.11.0"
+    tag: "v0.11.1"
     pullPolicy: IfNotPresent
   replicaCount: 1
   annotations: {}
@@ -363,7 +365,7 @@ january:
 crond:
   image:
     repository: ghcr.io/stoatchat/crond
-    tag: "v0.11.0"
+    tag: "v0.11.1"
     pullPolicy: IfNotPresent
   replicaCount: 1
   annotations: {}
@@ -382,7 +384,7 @@ crond:
 pushd:
   image:
     repository: ghcr.io/stoatchat/pushd
-    tag: "v0.11.0"
+    tag: "v0.11.1"
     pullPolicy: IfNotPresent
   replicaCount: 1
   annotations: {}
@@ -401,7 +403,7 @@ pushd:
 voiceIngress:
   image:
     repository: ghcr.io/stoatchat/voice-ingress
-    tag: "v0.11.0"
+    tag: "v0.11.1"
     pullPolicy: IfNotPresent
   replicaCount: 1
   annotations: {}
@@ -422,7 +424,7 @@ voiceIngress:
 gifbox:
   image:
     repository: ghcr.io/stoatchat/gifbox
-    tag: "v0.11.0"
+    tag: "v0.11.1"
     pullPolicy: IfNotPresent
   replicaCount: 1
   annotations: {}

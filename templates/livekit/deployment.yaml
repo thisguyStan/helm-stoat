@@ -58,8 +58,7 @@ spec:
                     - 'http://{{ $fullName }}-voice-ingress:8500/{{ $instance.name }}'
                 logging:
                   level: debug
-                keys:
-                  {{ $instance.name }}: {{ $instance.secret }}
+                key_file: /etc/livekit-keys/keys.yaml
           livenessProbe:
             httpGet:
               path: /
@@ -72,11 +71,20 @@ spec:
               port: 7880
             initialDelaySeconds: 5
             periodSeconds: 5
+          volumeMounts:
+            - name: livekit-keys
+              mountPath: /etc/livekit-keys/keys.yaml
+              subPath: keys.yaml
+              readOnly: true
           {{- with $root.Values.livekit.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
       volumes:
+        - name: livekit-keys
+          secret:
+            secretName: {{ $instance.existingSecret | default (printf "%s-livekit-%s-keys" $fullName $instance.name) }}
+            defaultMode: 0600
         - name: config
           configMap:
             name: {{ $fullName }}-config
