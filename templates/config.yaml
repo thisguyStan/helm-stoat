@@ -125,9 +125,9 @@ data:
     # S3 region name
     region = "minio"
     # S3 protocol key ID
-    access_key_id = "minioautumn"
+    access_key_id = {{ .Values.global.subcharts.minio.access_key_id | default .Values.minio.rootUser | default "minioautumn" | quote }}
     # S3 protocol access key
-    secret_access_key = "minioautumn"
+    secret_access_key = {{ .Values.global.subcharts.minio.secret_access_key | default .Values.minio.rootPassword | default "minioautumn" | quote }}
     default_bucket = "revolt-uploads"
 
     [features]

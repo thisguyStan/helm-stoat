@@ -185,6 +185,8 @@ global:
     minio:
       enabled: true  # Set to false to use external MinIO
       connection_url: ''
+      access_key_id: 'minioautumn'
+      secret_access_key: 'minioautumn'
     rabbitmq:
       enabled: true  # Set to false to use external RabbitMQ
       host: ''

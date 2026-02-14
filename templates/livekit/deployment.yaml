@@ -40,25 +40,10 @@ spec:
               protocol: TCP
           env:
             - name: LIVEKIT_CONFIG
-              value: |
-                port: 7880
-                redis:
-                    {{- if $root.Values.global.subcharts.redis.connection_url }}
-                    {{- $redisUrl := $root.Values.global.subcharts.redis.connection_url }}
-                    {{- $redisUserInfo := trimPrefix "redis://" $redisUrl | regexFind "[^@]+" }}
-                    address: {{ regexFind "[^/]+" (index (splitList "@" $redisUrl) 1) }}
-                    username: {{ regexFind "[^:/]+" $redisUserInfo | quote }}
-                    password: {{ last (regexFindAll ":[^@]+" $redisUserInfo -1) | trimPrefix ":" | quote }}
-                    {{- else }}
-                    address: "{{ $fullName }}-redis-master:6379"
-                    {{- end }}
-                webhook:
-                  api_key: {{ $instance.name }}
-                  urls:
-                    - 'http://{{ $fullName }}-voice-ingress:8500/{{ $instance.name }}'
-                logging:
-                  level: debug
-                key_file: /etc/livekit-keys/keys.yaml
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ $fullName }}-livekit-{{ $instance.name }}-secret"
+                  key: config.yaml
           livenessProbe:
             httpGet:
               path: /
@@ -83,11 +68,11 @@ spec:
       volumes:
         - name: livekit-keys
           secret:
-            secretName: {{ $instance.existingSecret | default (printf "%s-livekit-%s-keys" $fullName $instance.name) }}
+            secretName: {{ $instance.existingSecret | default (printf "%s-livekit-%s-secret" $fullName $instance.name) }}
+            items:
+              - key: keys.yaml
+                path: keys.yaml
             defaultMode: 0600
-        - name: config
-          configMap:
-            name: {{ $fullName }}-config
         {{- with $root.Values.livekit.extra_volumes }}
         {{ toYaml . | nindent 8 }}
         {{- end }}
