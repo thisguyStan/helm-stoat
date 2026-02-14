@@ -43,9 +43,15 @@ spec:
               value: |
                 port: 7880
                 redis:
-                    address: {{ regexFind "[^/]+" (index (splitList "@" ( $root.Values.global.subcharts.redis.connection_url | default (printf "redis://%s-redis-master" $fullName) ) ) 1) }}
-                    username: {{ regexFind "[^:/]+" (trimPrefix "redis://" ( $root.Values.global.subcharts.redis.connection_url | default (printf "redis://%s-redis-master" $fullName) ) | regexFind "[^@]+") | quote }}
-                    password: {{ last (regexFindAll ":[^@]+" (regexFind "[^@]+" (trimPrefix "redis://" ( $root.Values.global.subcharts.redis.connection_url | default (printf "redis://%s-redis-master" $fullName) ) )) -1) | trimPrefix ":" | quote }}
+                    {{- if $root.Values.global.subcharts.redis.connection_url }}
+                    {{- $redisUrl := $root.Values.global.subcharts.redis.connection_url }}
+                    {{- $redisUserInfo := trimPrefix "redis://" $redisUrl | regexFind "[^@]+" }}
+                    address: {{ regexFind "[^/]+" (index (splitList "@" $redisUrl) 1) }}
+                    username: {{ regexFind "[^:/]+" $redisUserInfo | quote }}
+                    password: {{ last (regexFindAll ":[^@]+" $redisUserInfo -1) | trimPrefix ":" | quote }}
+                    {{- else }}
+                    address: "{{ $fullName }}-redis-master:6379"
+                    {{- end }}
                 webhook:
                   api_key: {{ $instance.name }}
                   urls:
@@ -55,23 +61,17 @@ spec:
                 keys:
                   {{ $instance.name }}: {{ $instance.secret }}
           livenessProbe:
-            {{- if $root.Values.livekit.livenessProbe }}
-            {{- toYaml $root.Values.livekit.livenessProbe | nindent 12 }}
-            {{- else }}
-            tcpSocket:
+            httpGet:
+              path: /
               port: 7880
-            initialDelaySeconds: 15
-            periodSeconds: 30
-            {{- end }}
+            initialDelaySeconds: 30
+            periodSeconds: 10
           readinessProbe:
-            {{- if $root.Values.livekit.readinessProbe }}
-            {{- toYaml $root.Values.livekit.readinessProbe | nindent 12 }}
-            {{- else }}
-            tcpSocket:
+            httpGet:
+              path: /
               port: 7880
-            initialDelaySeconds: 15
-            periodSeconds: 30
-            {{- end }}
+            initialDelaySeconds: 5
+            periodSeconds: 5
           {{- with $root.Values.livekit.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
