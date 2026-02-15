@@ -74,6 +74,16 @@ spec:
                 port:
                   name: http
 
+          {{- if .Values.gifbox.enabled }}
+          - path: '/gifbox(/)?(.*)'
+            pathType: Prefix
+            backend:
+              service:
+                name: '{{ include "stoatchat.fullname" . }}-gifbox'
+                port:
+                  name: http
+          {{- end }}
+
           - path: '/(/)?(.*)'
             pathType: Prefix
             backend:

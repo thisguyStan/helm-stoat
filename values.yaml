@@ -422,8 +422,10 @@ voiceIngress:
   extra_volumeMounts: []
   configMountPath: /Revolt.toml
 
-# Push notification daemon
+# Tenor GIF proxy
+# NOTE: As of 15.feb.2025, the web app does not have a configurable gifbox host
 gifbox:
+  enabled: false
   image:
     repository: ghcr.io/stoatchat/gifbox
     tag: "v0.11.1"
@@ -437,6 +439,8 @@ gifbox:
   resources: {}
   livenessProbe:
   readinessProbe:
+  service:
+    type: ClusterIP
   extra_volumes: []
   extra_volumeMounts: []
   configMountPath: /Revolt.toml

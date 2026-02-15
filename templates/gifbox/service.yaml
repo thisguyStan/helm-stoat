@@ -1,0 +1,20 @@
+{{- if .Values.gifbox.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "stoatchat.fullname" . }}-gifbox
+  namespace: {{ .Values.global.namespace }}
+  labels:
+    {{- include "stoatchat.labels" . | nindent 4 }}
+    stoat-app: {{ include "stoatchat.fullname" . }}-gifbox
+spec:
+  type: {{ .Values.gifbox.service.type }}
+  ports:
+    - name: http
+      targetPort: http
+      protocol: TCP
+      port: {{ .Values.global.gifbox.port }}
+  selector:
+    {{- include "stoatchat.selectorLabels" . | nindent 4 }}
+    stoat-app: {{ include "stoatchat.fullname" . }}-gifbox
+{{- end }}
