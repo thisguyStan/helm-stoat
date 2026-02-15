@@ -5,11 +5,11 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ include "revolt.fullname" . }}-create-buckets-{{ now | date "20060102150405" }}
+  name: {{ include "stoatchat.fullname" . }}-create-buckets-{{ now | date "20060102150405" }}
   namespace: {{ .Values.global.namespace }}
   labels:
-    {{- include "revolt.labels" . | nindent 4 }}
-    revolt-app: {{ include "revolt.fullname" . }}-create-buckets
+    {{- include "stoatchat.labels" . | nindent 4 }}
+    stoat-app: {{ include "stoatchat.fullname" . }}-create-buckets
 spec:
 
   template:
@@ -19,8 +19,8 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        revolt-app: {{ include "revolt.fullname" . }}-create-buckets
-        {{- include "revolt.labels" . | nindent 8 }}
+        stoat-app: {{ include "stoatchat.fullname" . }}-create-buckets
+        {{- include "stoatchat.labels" . | nindent 8 }}
         {{- with .Values.web.labels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -35,13 +35,18 @@ spec:
             - -c
           args:
             - |
-              echo http://{{ include "revolt.fullname" . }}-minio:9000
+              echo http://{{ include "stoatchat.fullname" . }}-minio:9000
               while ! /usr/bin/mc ready minio; do
-                /usr/bin/mc alias set minio http://{{ include "revolt.fullname" . }}-minio:9000 minioautumn minioautumn
+                /usr/bin/mc alias set minio http://{{ include "stoatchat.fullname" . }}-minio:9000 ${MINIO_ACCESS_KEY} ${MINIO_SECRET_KEY}
                 echo 'Waiting minio...' && sleep 1
               done
               /usr/bin/mc mb minio/revolt-uploads
               exit 0
+          env:
+            - name: MINIO_ACCESS_KEY
+              value: {{ .Values.global.subcharts.minio.access_key_id | default .Values.minio.rootUser | default "minioautumn" | quote }}
+            - name: MINIO_SECRET_KEY
+              value: {{ .Values.global.subcharts.minio.secret_access_key | default .Values.minio.rootPassword | default "minioautumn" | quote }}
       {{- with .Values.web.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

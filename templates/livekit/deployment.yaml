@@ -1,0 +1,94 @@
+{{- $root := . -}}
+{{- $fullName := include "stoatchat.fullname" . -}}
+{{- range $instance := .Values.global.livekit }}
+{{- if $instance.name }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "{{ $fullName }}-livekit-{{ $instance.name }}"
+  namespace: {{ $root.Values.global.namespace }}
+  labels:
+    {{- include "stoatchat.labels" $root | nindent 4 }}
+    stoat-app: {{ $fullName }}-livekit-{{ $instance.name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "stoatchat.selectorLabels" $root | nindent 6 }}
+      stoat-app: {{ $fullName }}-livekit-{{ $instance.name }}
+  template:
+    metadata:
+      {{- with $root.Values.livekit.annotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        stoat-app: {{ $fullName }}-livekit-{{ $instance.name }}
+        {{- include "stoatchat.labels" $root | nindent 8 }}
+        {{- with $root.Values.livekit.labels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      containers:
+        - name: livekit
+          image: "{{ $root.Values.livekit.image.repository }}:{{ $root.Values.livekit.image.tag }}"
+          imagePullPolicy: {{ $root.Values.livekit.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 7880
+              protocol: TCP
+          env:
+            - name: LIVEKIT_CONFIG
+              valueFrom:
+                secretKeyRef:
+                  name: "{{ $fullName }}-livekit-{{ $instance.name }}-secret"
+                  key: config.yaml
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 7880
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 7880
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          volumeMounts:
+            - name: livekit-keys
+              mountPath: /etc/livekit-keys/keys.yaml
+              subPath: keys.yaml
+              readOnly: true
+          {{- with $root.Values.livekit.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      volumes:
+        - name: livekit-keys
+          secret:
+            secretName: {{ $instance.existingSecret | default (printf "%s-livekit-%s-secret" $fullName $instance.name) }}
+            items:
+              - key: keys.yaml
+                path: keys.yaml
+            defaultMode: 0600
+        {{- with $root.Values.livekit.extra_volumes }}
+        {{ toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with $root.Values.livekit.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- $affinity := merge (deepCopy ($instance.affinity | default dict)) ($root.Values.livekit.affinity | default dict) }}
+      {{- if $affinity }}
+      affinity:
+        {{- toYaml $affinity | nindent 8 }}
+      {{- end }}
+      {{- $tolerations := concat ($root.Values.livekit.tolerations | default list) ($instance.tolerations | default list) }}
+      {{- if $tolerations }}
+      tolerations:
+        {{- toYaml $tolerations | nindent 8 }}
+      {{- end }}
+{{- end }}
+{{- end }}

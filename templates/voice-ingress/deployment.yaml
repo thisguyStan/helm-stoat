@@ -1,73 +1,74 @@
+{{- $vi := .Values.voiceIngress -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: "{{ include "stoatchat.fullname" . }}-crond"
+  name: "{{ include "stoatchat.fullname" . }}-voice-ingress"
   namespace: {{ .Values.global.namespace }}
   labels:
     {{- include "stoatchat.labels" . | nindent 4 }}
-    stoat-app: {{ include "stoatchat.fullname" . }}-crond
+    stoat-app: {{ include "stoatchat.fullname" . }}-voice-ingress
 spec:
-  replicas: {{ .Values.crond.replicaCount }}
+  replicas: {{ $vi.replicaCount }}
   selector:
     matchLabels:
       {{- include "stoatchat.selectorLabels" . | nindent 6 }}
-      stoat-app: {{ include "stoatchat.fullname" . }}-crond
+      stoat-app: {{ include "stoatchat.fullname" . }}-voice-ingress
   template:
     metadata:
-      {{- with .Values.crond.annotations }}
+      {{- with $vi.annotations }}
       annotations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        stoat-app: {{ include "stoatchat.fullname" . }}-crond
+        stoat-app: {{ include "stoatchat.fullname" . }}-voice-ingress
         {{- include "stoatchat.labels" . | nindent 8 }}
-        {{- with .Values.crond.labels }}
+        {{- with $vi.labels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
     spec:
       containers:
-        - name: crond
-          image: "{{ .Values.crond.image.repository }}:{{ .Values.crond.image.tag }}"
-          imagePullPolicy: {{ .Values.crond.image.pullPolicy }}
+        - name: voice-ingress
+          image: "{{ $vi.image.repository }}:{{ $vi.image.tag }}"
+          imagePullPolicy: {{ $vi.image.pullPolicy }}
           ports:
             - name: http
-              containerPort: 8000
+              containerPort: 8500
               protocol: TCP
-          {{- if .Values.crond.livenessProbe }}
+          {{- if $vi.livenessProbe }}
           livenessProbe:
-            {{- toYaml .Values.crond.livenessProbe | nindent 12 }}
+            {{- toYaml $vi.livenessProbe | nindent 12 }}
           {{- end }}
-          {{- if .Values.crond.readinessProbe }}
+          {{- if $vi.readinessProbe }}
           readinessProbe:
-            {{- toYaml .Values.crond.readinessProbe | nindent 12 }}
+            {{- toYaml $vi.readinessProbe | nindent 12 }}
           {{- end }}
-          {{- with .Values.crond.resources }}
+          {{- with $vi.resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           volumeMounts:
             - name: config
               subPath: Revolt.toml
-              mountPath: {{ .Values.crond.configMountPath }}
-            {{- with .Values.crond.extra_volumeMounts }}
+              mountPath: {{ $vi.configMountPath }}
+            {{- with $vi.extra_volumeMounts }}
             {{ toYaml . | nindent 12 }}
             {{- end }}
       volumes:
         - name: config
           configMap:
             name: {{ include "stoatchat.fullname" . }}-config
-        {{- with .Values.crond.extra_volumes }}
+        {{- with $vi.extra_volumes }}
         {{ toYaml . | nindent 8 }}
         {{- end }}
-      {{- with .Values.crond.nodeSelector }}
+      {{- with $vi.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.crond.affinity }}
+      {{- with $vi.affinity }}
       affinity:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      {{- with .Values.crond.tolerations }}
+      {{- with $vi.tolerations }}
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}

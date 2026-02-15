@@ -1,13 +1,13 @@
-# Config Reference: https://github.com/revoltchat/backend/blob/stable/crates/core/config/Revolt.toml
-# Default values for revolt.
+# Config Reference: https://github.com/stoatchat/stoatchat/blob/stable/crates/core/config/Revolt.toml
+# Default values for stoat.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
 
 global:
-  namespace: 'revolt'
-  # Domain name used for access, ex revolt.example.com
-  domain: ''
+  namespace: 'stoatchat'
+  # Domain name used for access, ex stoat.example.com
+  domain: 'stoat.example.com'
 
   web:
     port: 5000
@@ -19,11 +19,150 @@ global:
     port: 14704
   january:
     port: 14705
+  gifbox:
+    port: 14706
+
+  livekit:
+  - name: 'worldwide'
+    secret: ''
+    subdomain: ''
+    # existingSecret: ''  # optional - name of an existing Secret containing keys.yaml (e.g. CSI-backed)
+    # host: ''            # optional - format in the file must be "<name>: <secret>" where name matches the instance name (e.g. "worldwide: mysecretvalue") 
+    # lat: 0.0 # optional
+    # lon: 0.0 # optional
+    # affinity: {}      # optional - standard Kubernetes affinity spec    - merged with top-level livekit.affinity (per-instance wins on conflict)
+    # tolerations: []   # optional - standard Kubernetes tolerations list - concatenated with top-level livekit.tolerations
 
   secret:
     vapid_key: ''
     vapid_public_key: ''
     encryption_key: ''
+
+  # Application configuration (maps to Revolt.toml)
+  config:
+    # Registration settings
+    registration:
+      invite_only: false
+
+    # SMTP for email verification (leave host empty to disable)
+    smtp:
+      host: ''
+      username: ''
+      password: ''
+      from_address: 'noreply@example.com'
+      # port: 587
+      # use_tls: true
+      # reply_to: ''
+
+    # Security settings
+    security:
+      # Enable if behind Cloudflare proxy
+      trust_cloudflare: false
+      # Authifier Shield API key
+      authifier_shield_key: ''
+      # Tenor GIF API key
+      tenor_key: ''
+      # hCaptcha configuration (leave empty to disable)
+      captcha:
+        hcaptcha_key: ''
+        hcaptcha_sitekey: ''
+
+    # Feature toggles
+    features:
+      webhooks_enabled: false
+      mass_mentions_send_notifications: true
+      mass_mentions_enabled: true
+
+    # File handling settings
+    files:
+      # Quality for lossy WebP previews (1-100, 100 = lossless)
+      webp_quality: 80.0
+      # Mime types that cannot be uploaded or served
+      blocked_mime_types: []
+      # ClamAV antivirus hostname:port (leave empty to disable)
+      clamd_host: ''
+
+    # Livekit API settings
+    livekit:
+      # How long to ring devices when calling (seconds)
+      call_ring_duration: 30
+
+    # Push notification services (leave empty to disable)
+    pushd:
+      fcm:
+        key_type: ''
+        project_id: ''
+        private_key_id: ''
+        private_key: ''
+        client_email: ''
+        client_id: ''
+        auth_uri: ''
+        token_uri: ''
+        auth_provider_x509_cert_url: ''
+        client_x509_cert_url: ''
+      apn:
+        sandbox: false
+        pkcs8: ''
+        key_id: ''
+        team_id: ''
+
+    # Sentry error reporting DSNs (leave empty to disable)
+    sentry:
+      api: ''
+      events: ''
+      voice_ingress: ''
+      files: ''
+      proxy: ''
+      pushd: ''
+      crond: ''
+      gifbox: ''
+
+    # Feature limits
+    limits:
+      global:
+        group_size: 100
+        message_embeds: 5
+        message_replies: 5
+        message_reactions: 20
+        server_emoji: 100
+        server_roles: 200
+        server_channels: 200
+        new_user_hours: 72
+        body_limit_size: 20000000
+      new_user:
+        outgoing_friend_requests: 5
+        bots: 2
+        message_length: 2000
+        message_attachments: 5
+        servers: 50
+        voice_quality: 16000
+        video: true
+        video_resolution: [1080, 720]
+        video_aspect_ratio: [0.3, 2.5]
+        file_upload_size_limit:
+          attachments: 20000000
+          avatars: 4000000
+          backgrounds: 6000000
+          icons: 2500000
+          banners: 6000000
+          emojis: 500000
+      default:
+        outgoing_friend_requests: 10
+        bots: 5
+        message_length: 2000
+        message_attachments: 5
+        servers: 100
+        voice_quality: 16000
+        video: true
+        video_resolution: [1080, 720]
+        video_aspect_ratio: [0.3, 2.5]
+        file_upload_size_limit:
+          attachments: 20000000
+          avatars: 4000000
+          backgrounds: 6000000
+          icons: 2500000
+          banners: 6000000
+          emojis: 500000
 
   ingress:
     enabled: false
@@ -37,7 +176,7 @@ global:
     name: ""
 
   subcharts:
-    mongo:
+    mongodb:
       enabled: true  # Set to false to use external MongoDB
       connection_url: ''
     redis:
@@ -46,6 +185,8 @@ global:
     minio:
       enabled: true  # Set to false to use external MinIO
       connection_url: ''
+      access_key_id: 'minioautumn'
+      secret_access_key: 'minioautumn'
     rabbitmq:
       enabled: true  # Set to false to use external RabbitMQ
       host: ''
@@ -98,9 +239,10 @@ minio:
 # Web app
 web:
   image:
-    repository: ghcr.io/revoltchat/client
-    tag: master
-    pullPolicy: Always
+    # Requires custom build - see build/BUILD-IMAGES.md
+    repository: ghcr.io/YOUR_USERNAME/stoat-for-web
+    tag: "v0.1.0" # Replace with your build image tag
+    pullPolicy: IfNotPresent
   annotations: {}
   labels: {}
   nodeSelector: {}
@@ -119,8 +261,8 @@ web:
 # Revolt API Server
 api:
   image:
-    repository: ghcr.io/revoltchat/server
-    tag: 20250210-1
+    repository: ghcr.io/stoatchat/api
+    tag: "v0.11.1"
     pullPolicy: IfNotPresent
   replicaCount: 1
   annotations: {}
@@ -138,11 +280,29 @@ api:
   configMountPath: /Revolt.toml
 
 
+# Livekit Server
+livekit:
+  image:
+    repository: ghcr.io/stoatchat/livekit-server
+    tag: "v1.9.9"
+    pullPolicy: IfNotPresent
+  annotations: {}
+  labels: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  resources: {}
+  service:
+    type: ClusterIP
+  extra_volumes: []
+  extra_volumeMounts: []
+
+
 # Events service
 bonfire:
   image:
-    repository: ghcr.io/revoltchat/bonfire
-    tag: 20250210-1
+    repository: ghcr.io/stoatchat/events
+    tag: "v0.11.1"
     pullPolicy: IfNotPresent
   replicaCount: 1
   annotations: {}
@@ -163,8 +323,8 @@ bonfire:
 # File server
 autumn:
   image:
-    repository: ghcr.io/revoltchat/autumn
-    tag: 20250210-1
+    repository: ghcr.io/stoatchat/file-server
+    tag: "v0.11.1"
     pullPolicy: IfNotPresent
   replicaCount: 1
   annotations: {}
@@ -185,8 +345,8 @@ autumn:
 # Metadata and image proxy
 january:
   image:
-    repository: ghcr.io/revoltchat/january
-    tag: 20250210-1
+    repository: ghcr.io/stoatchat/proxy
+    tag: "v0.11.1"
     pullPolicy: IfNotPresent
   replicaCount: 1
   annotations: {}
@@ -206,8 +366,8 @@ january:
 # Regular task daemon
 crond:
   image:
-    repository: ghcr.io/revoltchat/crond
-    tag: 20250210-1-debug
+    repository: ghcr.io/stoatchat/crond
+    tag: "v0.11.1"
     pullPolicy: IfNotPresent
   replicaCount: 1
   annotations: {}
@@ -225,8 +385,48 @@ crond:
 # Push notification daemon
 pushd:
   image:
-    repository: ghcr.io/revoltchat/pushd
-    tag: 20250210-1
+    repository: ghcr.io/stoatchat/pushd
+    tag: "v0.11.1"
+    pullPolicy: IfNotPresent
+  replicaCount: 1
+  annotations: {}
+  labels: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  resources: {}
+  livenessProbe:
+  readinessProbe:
+  extra_volumes: []
+  extra_volumeMounts: []
+  configMountPath: /Revolt.toml
+
+# Voice ingress service
+voiceIngress:
+  image:
+    repository: ghcr.io/stoatchat/voice-ingress
+    tag: "v0.11.1"
+    pullPolicy: IfNotPresent
+  replicaCount: 1
+  annotations: {}
+  labels: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  resources: {}
+  livenessProbe:
+  readinessProbe:
+  service:
+    type: ClusterIP
+  extra_volumes: []
+  extra_volumeMounts: []
+  configMountPath: /Revolt.toml
+
+# Push notification daemon
+gifbox:
+  image:
+    repository: ghcr.io/stoatchat/gifbox
+    tag: "v0.11.1"
     pullPolicy: IfNotPresent
   replicaCount: 1
   annotations: {}

@@ -1,11 +1,11 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "revolt.fullname" . }}-web
+  name: {{ include "stoatchat.fullname" . }}-web
   namespace: {{ .Values.global.namespace }}
   labels:
-    {{- include "revolt.labels" . | nindent 4 }}
-    revolt-app: {{ include "revolt.fullname" . }}-web
+    {{- include "stoatchat.labels" . | nindent 4 }}
+    stoat-app: {{ include "stoatchat.fullname" . }}-web
 spec:
   type: {{ .Values.web.service.type }}
   ports:
@@ -14,5 +14,5 @@ spec:
       protocol: TCP
       port: {{ .Values.global.web.port }}
   selector:
-    {{- include "revolt.selectorLabels" . | nindent 4 }}
-    revolt-app: {{ include "revolt.fullname" . }}-web
+    {{- include "stoatchat.selectorLabels" . | nindent 4 }}
+    stoat-app: {{ include "stoatchat.fullname" . }}-web

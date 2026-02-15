@@ -1,7 +1,8 @@
+{{- $fullName := include "stoatchat.fullname" . -}}
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "revolt.fullname" . }}-config
+  name: {{ $fullName }}-config
   namespace: {{ .Values.global.namespace }}
   annotations:
     "helm.sh/resource-policy": keep
@@ -10,15 +11,14 @@ data:
     production = false
 
     [database]
-    mongodb = {{ .Values.global.subcharts.mongo.connection_url | default (printf "mongodb://%s-mongodb" (include "revolt.fullname" .)) | quote }}
-    redis = {{ .Values.global.subcharts.redis.connection_url | default (printf "redis://%s-redis-master" (include "revolt.fullname" .)) | quote }}
+    mongodb = {{ .Values.global.subcharts.mongodb.connection_url | default (printf "mongodb://%s-mongodb" $fullName) | quote }}
+    redis = {{ .Values.global.subcharts.redis.connection_url | default (printf "redis://%s-redis-master" $fullName) | quote }}
 
     [rabbit]
-    host = {{ .Values.global.subcharts.rabbitmq.host | default (printf "%s-rabbitmq" (include "revolt.fullname" .)) | quote }}
+    host = {{ .Values.global.subcharts.rabbitmq.host | default (printf "%s-rabbitmq" $fullName) | quote }}
     port = {{ .Values.global.subcharts.rabbitmq.port }}
     username = {{ .Values.global.subcharts.rabbitmq.username | quote }}
     password = {{ .Values.global.subcharts.rabbitmq.password | quote }}
-
 
     [hosts]
     app = "https://{{ .Values.global.domain }}"
@@ -27,25 +27,183 @@ data:
     autumn = "https://{{ .Values.global.domain }}/autumn"
     january = "https://{{ .Values.global.domain }}/january"
 
+    # Public urls for livekit nodes
+    # each entry here should have a corresponding entry under `api.livekit.nodes`
+    [hosts.livekit]
+    {{- range $v := .Values.global.livekit }}
+    {{ $v.name }} = "wss://{{ $v.subdomain }}.{{ $.Values.global.domain }}"
+    {{- end }}
+
+    [api]
+
+    [api.registration]
+    invite_only = {{ .Values.global.config.registration.invite_only }}
+
+    [api.smtp]
+    host = {{ .Values.global.config.smtp.host | quote }}
+    username = {{ .Values.global.config.smtp.username | quote }}
+    password = {{ .Values.global.config.smtp.password | quote }}
+    from_address = {{ .Values.global.config.smtp.from_address | quote }}
+    {{- with .Values.global.config.smtp.port }}
+    port = {{ . }}
+    {{- end }}
+    {{- if hasKey .Values.global.config.smtp "use_tls" }}
+    use_tls = {{ .Values.global.config.smtp.use_tls }}
+    {{- end }}
+    {{- with .Values.global.config.smtp.reply_to }}
+    reply_to = {{ . | quote }}
+    {{- end }}
+
+    [api.security]
+    authifier_shield_key = {{ .Values.global.config.security.authifier_shield_key | quote }}
+    trust_cloudflare = {{ .Values.global.config.security.trust_cloudflare }}
+    tenor_key = {{ .Values.global.config.security.tenor_key | quote }}
+
+    [api.security.captcha]
+    hcaptcha_key = {{ .Values.global.config.security.captcha.hcaptcha_key | quote }}
+    hcaptcha_sitekey = {{ .Values.global.config.security.captcha.hcaptcha_sitekey | quote }}
+
+    [api.livekit]
+    call_ring_duration = {{ .Values.global.config.livekit.call_ring_duration }}
+    
+    # Config for livekit nodes
+    # Make sure to change the secret when deploying
+    # The key and secret should match the values livekit is using
+
+    {{- range $v := .Values.global.livekit }}
+
+    [api.livekit.nodes.{{ $v.name }}]
+    url = "http://{{ $fullName }}-livekit-{{ $v.name }}:7880"
+    lat = {{ $v.lat | default 0.0 }}
+    lon = {{ $v.lon | default 0.0 }}
+    key = "{{ $v.name }}"
+    secret = "{{ $v.secret }}"
+
+    {{- end }}
+
+    [pushd]
+    production = {{ .Values.global.config.production }}
+
     [pushd.vapid]
-    private_key = "{{ .Values.global.secret.vapid_key }}"
-    public_key = "{{ .Values.global.secret.vapid_public_key }}"
+    private_key = {{ .Values.global.secret.vapid_key | quote }}
+    public_key = {{ .Values.global.secret.vapid_public_key | quote }}
+
+    [pushd.fcm]
+    {{- with .Values.global.config.pushd.fcm }}
+    key_type = {{ .key_type | quote }}
+    project_id = {{ .project_id | quote }}
+    private_key_id = {{ .private_key_id | quote }}
+    private_key = {{ .private_key | quote }}
+    client_email = {{ .client_email | quote }}
+    client_id = {{ .client_id | quote }}
+    auth_uri = {{ .auth_uri | quote }}
+    token_uri = {{ .token_uri | quote }}
+    auth_provider_x509_cert_url = {{ .auth_provider_x509_cert_url | quote }}
+    client_x509_cert_url = {{ .client_x509_cert_url | quote }}
+    {{- end }}
+
+    [pushd.apn]
+    {{- with .Values.global.config.pushd.apn }}
+    sandbox = {{ .sandbox }}
+    pkcs8 = {{ .pkcs8 | quote }}
+    key_id = {{ .key_id | quote }}
+    team_id = {{ .team_id | quote }}
+    {{- end }}
 
     [files]
-    encryption_key = "{{ .Values.global.secret.encryption_key }}"
-
-
+    encryption_key = {{ .Values.global.secret.encryption_key | quote }}
+    webp_quality = {{ .Values.global.config.files.webp_quality }}
+    blocked_mime_types = {{ .Values.global.config.files.blocked_mime_types | toJson }}
+    clamd_host = {{ .Values.global.config.files.clamd_host | quote }}
 
     [files.s3]
     # S3 protocol endpoint
-    endpoint = {{ .Values.global.subcharts.minio.connection_url | default (printf "redis://%s-minio:9000" (include "revolt.fullname" .)) | quote }}
+    endpoint = {{ .Values.global.subcharts.minio.connection_url | default (printf "http://%s-minio:9000" $fullName) | quote }}
     # Whether to use path-style buckets
     # Generally true, except for MinIO
     path_style_buckets = false
     # S3 region name
     region = "minio"
     # S3 protocol key ID
-    access_key_id = "minioautumn"
+    access_key_id = {{ .Values.global.subcharts.minio.access_key_id | default .Values.minio.rootUser | default "minioautumn" | quote }}
     # S3 protocol access key
-    secret_access_key = "minioautumn"
+    secret_access_key = {{ .Values.global.subcharts.minio.secret_access_key | default .Values.minio.rootPassword | default "minioautumn" | quote }}
     default_bucket = "revolt-uploads"
+
+    [features]
+    webhooks_enabled = {{ .Values.global.config.features.webhooks_enabled }}
+    mass_mentions_send_notifications = {{ .Values.global.config.features.mass_mentions_send_notifications }}
+    mass_mentions_enabled = {{ .Values.global.config.features.mass_mentions_enabled }}
+
+    [features.limits]
+
+    [features.limits.global]
+    {{- with .Values.global.config.limits.global }}
+    group_size = {{ .group_size }}
+    message_embeds = {{ .message_embeds }}
+    message_replies = {{ .message_replies }}
+    message_reactions = {{ .message_reactions }}
+    server_emoji = {{ .server_emoji }}
+    server_roles = {{ .server_roles }}
+    server_channels = {{ .server_channels }}
+    new_user_hours = {{ .new_user_hours }}
+    body_limit_size = {{ printf "%.0f" (float64 .body_limit_size) }}
+    {{- end }}
+
+    [features.limits.new_user]
+    {{- with .Values.global.config.limits.new_user }}
+    outgoing_friend_requests = {{ .outgoing_friend_requests }}
+    bots = {{ .bots }}
+    message_length = {{ .message_length }}
+    message_attachments = {{ .message_attachments }}
+    servers = {{ .servers }}
+    voice_quality = {{ .voice_quality }}
+    video = {{ .video }}
+    video_resolution = {{ .video_resolution | toJson }}
+    video_aspect_ratio = {{ .video_aspect_ratio | toJson }}
+    {{- end }}
+
+    [features.limits.new_user.file_upload_size_limit]
+    {{- with .Values.global.config.limits.new_user.file_upload_size_limit }}
+    attachments = {{ printf "%.0f" (float64 .attachments) }}
+    avatars = {{ printf "%.0f" (float64 .avatars) }}
+    backgrounds = {{ printf "%.0f" (float64 .backgrounds) }}
+    icons = {{ printf "%.0f" (float64 .icons) }}
+    banners = {{ printf "%.0f" (float64 .banners) }}
+    emojis = {{ printf "%.0f" (float64 .emojis) }}
+    {{- end }}
+
+    [features.limits.default]
+    {{- with .Values.global.config.limits.default }}
+    outgoing_friend_requests = {{ .outgoing_friend_requests }}
+    bots = {{ .bots }}
+    message_length = {{ .message_length }}
+    message_attachments = {{ .message_attachments }}
+    servers = {{ .servers }}
+    voice_quality = {{ .voice_quality }}
+    video = {{ .video }}
+    video_resolution = {{ .video_resolution | toJson }}
+    video_aspect_ratio = {{ .video_aspect_ratio | toJson }}
+    {{- end }}
+
+    [features.limits.default.file_upload_size_limit]
+    {{- with .Values.global.config.limits.default.file_upload_size_limit }}
+    attachments = {{ printf "%.0f" (float64 .attachments) }}
+    avatars = {{ printf "%.0f" (float64 .avatars) }}
+    backgrounds = {{ printf "%.0f" (float64 .backgrounds) }}
+    icons = {{ printf "%.0f" (float64 .icons) }}
+    banners = {{ printf "%.0f" (float64 .banners) }}
+    emojis = {{ printf "%.0f" (float64 .emojis) }}
+    {{- end }}
+
+    [sentry]
+    {{- with .Values.global.config.sentry }}
+    api = {{ .api | quote }}
+    events = {{ .events | quote }}
+    voice_ingress = {{ .voice_ingress | quote }}
+    files = {{ .files | quote }}
+    proxy = {{ .proxy | quote }}
+    pushd = {{ .pushd | quote }}
+    crond = {{ .crond | quote }}
+    gifbox = {{ .gifbox | quote }}
+    {{- end }}

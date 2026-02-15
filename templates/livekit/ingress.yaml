@@ -1,0 +1,55 @@
+{{- if .Values.global.ingress.enabled -}}
+{{- $root := . -}}
+{{- $fullName := include "stoatchat.fullname" . -}}
+{{- range $instance := .Values.global.livekit }}
+{{- if and $instance.name $instance.subdomain }}
+---
+{{- if and $root.Values.global.ingress.className (not (semverCompare ">=1.18-0" $root.Capabilities.KubeVersion.GitVersion)) }}
+  {{- if not (hasKey $root.Values.global.ingress.annotations "kubernetes.io/ingress.class") }}
+  {{- $_ := set $root.Values.global.ingress.annotations "kubernetes.io/ingress.class" $root.Values.global.ingress.className }}
+  {{- end }}
+{{- end }}
+{{- if semverCompare ">=1.19-0" $root.Capabilities.KubeVersion.GitVersion }}
+apiVersion: networking.k8s.io/v1
+{{- else if semverCompare ">=1.14-0" $root.Capabilities.KubeVersion.GitVersion }}
+apiVersion: networking.k8s.io/v1beta1
+{{- else }}
+apiVersion: extensions/v1beta1
+{{- end }}
+kind: Ingress
+metadata:
+  name: "{{ $fullName }}-livekit-{{ $instance.name }}"
+  namespace: {{ $root.Values.global.namespace }}
+  labels:
+    {{- include "stoatchat.labels" $root | nindent 4 }}
+  {{- with $root.Values.global.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+    kubernetes.io/tls-acme: "true"
+    {{- if eq $root.Values.global.ingress.className "nginx" }}
+    nginx.ingress.kubernetes.io/force-ssl-redirect: 'true'
+    nginx.ingress.kubernetes.io/proxy-body-size: '0'
+    {{- end }}
+spec:
+  {{- if and $root.Values.global.ingress.className (semverCompare ">=1.18-0" $root.Capabilities.KubeVersion.GitVersion) }}
+  ingressClassName: {{ $root.Values.global.ingress.className }}
+  {{- end }}
+  tls:
+    - secretName: "tls-{{ $fullName }}-livekit-{{ $instance.name }}"
+      hosts:
+        - {{ $instance.subdomain }}.{{ $root.Values.global.domain }}
+  rules:
+    - host: {{ $instance.subdomain }}.{{ $root.Values.global.domain }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: '{{ $fullName }}-livekit-{{ $instance.name }}'
+                port:
+                  name: http
+{{- end }}
+{{- end }}
+{{- end }}

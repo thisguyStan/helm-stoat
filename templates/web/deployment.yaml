@@ -1,17 +1,17 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: "{{ include "revolt.fullname" . }}-web"
+  name: "{{ include "stoatchat.fullname" . }}-web"
   namespace: {{ .Values.global.namespace }}
   labels:
-    {{- include "revolt.labels" . | nindent 4 }}
-    revolt-app: {{ include "revolt.fullname" . }}-web
+    {{- include "stoatchat.labels" . | nindent 4 }}
+    stoat-app: {{ include "stoatchat.fullname" . }}-web
 spec:
   replicas: {{ .Values.web.replicaCount }}
   selector:
     matchLabels:
-      {{- include "revolt.selectorLabels" . | nindent 6 }}
-      revolt-app: {{ include "revolt.fullname" . }}-web
+      {{- include "stoatchat.selectorLabels" . | nindent 6 }}
+      stoat-app: {{ include "stoatchat.fullname" . }}-web
   template:
     metadata:
       {{- with .Values.web.annotations }}
@@ -19,8 +19,8 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        revolt-app: {{ include "revolt.fullname" . }}-web
-        {{- include "revolt.labels" . | nindent 8 }}
+        stoat-app: {{ include "stoatchat.fullname" . }}-web
+        {{- include "stoatchat.labels" . | nindent 8 }}
         {{- with .Values.web.labels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -31,13 +31,8 @@ spec:
           imagePullPolicy: {{ .Values.web.image.pullPolicy }}
           ports:
             - name: http
-              containerPort: 5000
+              containerPort: 80
               protocol: TCP
-          env:
-            - name: HOSTNAME
-              value: 'https://{{ .Values.global.domain }}'
-            - name: REVOLT_PUBLIC_URL
-              value: 'https://{{ .Values.global.domain }}/api'
           livenessProbe:
             {{- if .Values.web.livenessProbe }}
             {{- toYaml .Values.web.livenessProbe | nindent 12 }}
@@ -67,7 +62,7 @@ spec:
       volumes:
         - name: config
           configMap:
-            name: {{ include "revolt.fullname" . }}-config
+            name: {{ include "stoatchat.fullname" . }}-config
         {{- with .Values.web.extra_volumes }}
         {{ toYaml . | nindent 8 }}
         {{- end }}

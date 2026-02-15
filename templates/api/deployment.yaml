@@ -1,17 +1,17 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: "{{ include "revolt.fullname" . }}-api"
+  name: "{{ include "stoatchat.fullname" . }}-api"
   namespace: {{ .Values.global.namespace }}
   labels:
-    {{- include "revolt.labels" . | nindent 4 }}
-    revolt-app: {{ include "revolt.fullname" . }}-api
+    {{- include "stoatchat.labels" . | nindent 4 }}
+    stoat-app: {{ include "stoatchat.fullname" . }}-api
 spec:
   replicas: {{ .Values.api.replicaCount }}
   selector:
     matchLabels:
-      {{- include "revolt.selectorLabels" . | nindent 6 }}
-      revolt-app: {{ include "revolt.fullname" . }}-api
+      {{- include "stoatchat.selectorLabels" . | nindent 6 }}
+      stoat-app: {{ include "stoatchat.fullname" . }}-api
   template:
     metadata:
       {{- with .Values.api.annotations }}
@@ -19,8 +19,8 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        revolt-app: {{ include "revolt.fullname" . }}-api
-        {{- include "revolt.labels" . | nindent 8 }}
+        stoat-app: {{ include "stoatchat.fullname" . }}-api
+        {{- include "stoatchat.labels" . | nindent 8 }}
         {{- with .Values.api.labels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -65,7 +65,7 @@ spec:
       volumes:
         - name: config
           configMap:
-            name: {{ include "revolt.fullname" . }}-config
+            name: {{ include "stoatchat.fullname" . }}-config
         {{- with .Values.api.extra_volumes }}
         {{ toYaml . | nindent 8 }}
         {{- end }}

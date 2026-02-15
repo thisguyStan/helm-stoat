@@ -1,0 +1,25 @@
+{{- $root := . -}}
+{{- $fullName := include "stoatchat.fullname" . -}}
+{{- range $instance := .Values.global.livekit }}
+{{- if $instance.name }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $fullName }}-livekit-{{ $instance.name }}
+  namespace: {{ $root.Values.global.namespace }}
+  labels:
+    {{- include "stoatchat.labels" $root | nindent 4 }}
+    stoat-app: {{ $fullName }}-livekit-{{ $instance.name }}
+spec:
+  type: {{ $root.Values.livekit.service.type }}
+  ports:
+    - name: http
+      targetPort: http
+      protocol: TCP
+      port: 7880
+  selector:
+    {{- include "stoatchat.selectorLabels" $root | nindent 4 }}
+    stoat-app: {{ $fullName }}-livekit-{{ $instance.name }}
+{{- end }}
+{{- end }}
