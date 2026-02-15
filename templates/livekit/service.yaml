@@ -17,7 +17,15 @@ spec:
     - name: http
       targetPort: http
       protocol: TCP
-      port: 7880
+      port: {{ $instance.http_port | default 7880 }}
+    - name: rtc-tcp
+      targetPort: rtc-tcp
+      protocol: TCP
+      port: {{ $instance.rtc_tcp_port | default 7881 }}
+    - name: rtc-udp
+      targetPort: rtc-udp
+      protocol: UDP
+      port: {{ $instance.rtc_udp_port | default 7882 }}
   selector:
     {{- include "stoatchat.selectorLabels" $root | nindent 4 }}
     stoat-app: {{ $fullName }}-livekit-{{ $instance.name }}

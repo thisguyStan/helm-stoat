@@ -21,6 +21,7 @@ To use the minimal setup, you will require
 - A working kubernetes cluster
 - Persistent storage for MongoDB, Redis, MinIO, and RabbitMQ
 - A valid hostname and the ability to access it via HTTPS (such as [cert-manager](https://cert-manager.io/docs/))
+- **For voice/video calls**: Node firewall rules allowing UDP port 7882 and TCP port 7881 (or custom ports if configured)
 
 1. Generate required config keys.  We provide a script to run in docker to generate it in this repo.
    ```shell

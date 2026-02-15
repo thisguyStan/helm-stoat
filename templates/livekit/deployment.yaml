@@ -30,14 +30,25 @@ spec:
         {{- toYaml . | nindent 8 }}
         {{- end }}
     spec:
+      # hostNetwork required for WebRTC - allows only one LiveKit pod per node
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
       containers:
         - name: livekit
           image: "{{ $root.Values.livekit.image.repository }}:{{ $root.Values.livekit.image.tag }}"
           imagePullPolicy: {{ $root.Values.livekit.image.pullPolicy }}
           ports:
             - name: http
-              containerPort: 7880
+              containerPort: {{ $instance.http_port | default 7880 }}
               protocol: TCP
+            - name: rtc-tcp
+              containerPort: {{ $instance.rtc_tcp_port | default 7881 }}
+              hostPort: {{ $instance.rtc_tcp_port | default 7881 }}
+              protocol: TCP
+            - name: rtc-udp
+              containerPort: {{ $instance.rtc_udp_port | default 7882 }}
+              hostPort: {{ $instance.rtc_udp_port | default 7882 }}
+              protocol: UDP
           env:
             - name: LIVEKIT_CONFIG
               valueFrom:
@@ -47,13 +58,13 @@ spec:
           livenessProbe:
             httpGet:
               path: /
-              port: 7880
+              port: {{ $instance.http_port | default 7880 }}
             initialDelaySeconds: 30
             periodSeconds: 10
           readinessProbe:
             httpGet:
               path: /
-              port: 7880
+              port: {{ $instance.http_port | default 7880 }}
             initialDelaySeconds: 5
             periodSeconds: 5
           volumeMounts:
