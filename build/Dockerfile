@@ -36,7 +36,8 @@ RUN cd packages/client && \
     echo "VITE_PROXY_URL=${VITE_PROXY_URL}" >> .env
 
 # Install dependencies and build
-RUN mise install:frozen && \
+RUN mise trust && \
+    mise install:frozen && \
     mise build:deps && \
     mise build:prod
 
