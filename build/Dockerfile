@@ -3,10 +3,19 @@
 # No official container image is published, so we build our own
 # Supports custom repositories and branches via build args
 
-FROM node:24-alpine AS builder
+FROM node:24-bookworm-slim AS builder
 
 # Install mise for dependency management
-RUN apk add --no-cache bash curl git python3 make g++ linux-headers
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    bash \
+    ca-certificates \
+    curl \
+    git \
+    python3 \
+    make \
+    g++ \
+    xz-utils \
+    && rm -rf /var/lib/apt/lists/*
 RUN curl https://mise.run | sh
 ENV PATH="/root/.local/bin:${PATH}"
 

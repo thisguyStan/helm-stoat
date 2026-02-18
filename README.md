@@ -62,7 +62,12 @@ To use the minimal setup, you will require
         subdomain: 'livekit'
     ```
 
-3. Run `helm install stoatchat ./ -f my_values.yaml`
+3. Install from the published chart repository:
+  ```shell
+  helm repo add stoat https://thisguyStan.github.io/helm-stoat
+  helm repo update
+  helm install stoatchat stoat/stoatchat -f my_values.yaml
+  ```
 4. Access your instance at your external URL. It may take a few minutes to spin up from scratch.
     
 ## Secret Management
