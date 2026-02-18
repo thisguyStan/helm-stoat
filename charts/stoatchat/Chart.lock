@@ -1,15 +1,15 @@
 dependencies:
 - name: mongodb
   repository: https://charts.bitnami.com/bitnami
-  version: 16.5.45
+  version: 18.5.0
 - name: redis
   repository: https://charts.bitnami.com/bitnami
-  version: 22.0.7
+  version: 25.3.0
 - name: minio
   repository: https://charts.bitnami.com/bitnami
   version: 17.0.21
 - name: rabbitmq
   repository: https://charts.bitnami.com/bitnami
   version: 16.0.14
-digest: sha256:154ab2c45e5b1eb85aae97318cc09fc3188458414cd2ed41553ac96c64bc498f
-generated: "2025-09-09T23:19:48.6181668-04:00"
+digest: sha256:c7e4ab93cb0dba93616d943c52a56018f86397538e4bc5df4b581addd2159965
+generated: "2026-02-18T14:34:02.7020037+01:00"
