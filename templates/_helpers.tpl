@@ -60,3 +60,82 @@ Create the name of the service account to use
 {{- default "default" .Values.global.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{/*
+Get secret seed from values or existing secret
+Returns empty string if neither is provided (causes random generation)
+*/}}
+{{- define "stoatchat.getSecretSeed" -}}
+{{- if .Values.global.secretSeed -}}
+  {{- .Values.global.secretSeed -}}
+{{- else if .Values.global.existingSecretSeed -}}
+  {{- $secret := lookup "v1" "Secret" (default .Release.Namespace .Values.global.existingSecretSeed.namespace) .Values.global.existingSecretSeed.name -}}
+  {{- if $secret -}}
+    {{- $key := .Values.global.existingSecretSeed.key | default "secretSeed" -}}
+    {{- index $secret.data $key | b64dec -}}
+  {{- else -}}
+    {{- fail (printf "Secret %s not found in namespace %s. Create the secret or provide global.secretSeed directly." .Values.global.existingSecretSeed.name (default .Release.Namespace .Values.global.existingSecretSeed.namespace)) -}}
+  {{- end -}}
+{{- else -}}
+  {{- "" -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Derive secret from seed and identifier
+Usage: {{ include "stoatchat.deriveSecret" (dict "root" . "id" "identifier" "length" 32) }}
+*/}}
+{{- define "stoatchat.deriveSecret" -}}
+{{- $length := .length | default 32 -}}
+{{- $seed := include "stoatchat.getSecretSeed" .root -}}
+{{- if $seed -}}
+  {{- printf "%s:%s" $seed .id | sha256sum | trunc $length -}}
+{{- else -}}
+  {{- randAlphaNum $length -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Get or derive file encryption key
+*/}}
+{{- define "stoatchat.fileEncryptionKey" -}}
+{{- if .Values.global.secret.encryption_key -}}
+  {{- .Values.global.secret.encryption_key -}}
+{{- else -}}
+  {{- include "stoatchat.deriveSecret" (dict "root" . "id" "file-encryption" "length" 32) -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Get VAPID private key from user input or from secret
+*/}}
+{{- define "stoatchat.vapidPrivateKey" -}}
+{{- if .Values.global.secret.vapid_key -}}
+  {{- .Values.global.secret.vapid_key -}}
+{{- else -}}
+  {{- $fullName := include "stoatchat.fullname" . -}}
+  {{- $secret := lookup "v1" "Secret" .Release.Namespace (printf "%s-vapid" $fullName) -}}
+  {{- if $secret -}}
+    {{- index $secret.data "private_key" | b64dec -}}
+  {{- else -}}
+    {{- fail "VAPID keys not found. They will be auto-generated on first install. If upgrading, check the vapid Secret exists." -}}
+  {{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
+Get VAPID public key from user input or from secret
+*/}}
+{{- define "stoatchat.vapidPublicKey" -}}
+{{- if .Values.global.secret.vapid_public_key -}}
+  {{- .Values.global.secret.vapid_public_key -}}
+{{- else -}}
+  {{- $fullName := include "stoatchat.fullname" . -}}
+  {{- $secret := lookup "v1" "Secret" .Release.Namespace (printf "%s-vapid" $fullName) -}}
+  {{- if $secret -}}
+    {{- index $secret.data "public_key" | b64dec -}}
+  {{- else -}}
+    {{- fail "VAPID keys not found. They will be auto-generated on first install. If upgrading, check the vapid Secret exists." -}}
+  {{- end -}}
+{{- end -}}
+{{- end -}}

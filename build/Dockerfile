@@ -1,6 +1,7 @@
 # Dockerfile for building Stoat web client
 # Source: https://github.com/stoatchat/for-web
 # No official container image is published, so we build our own
+# Supports custom repositories and branches via build args
 
 FROM node:24-alpine AS builder
 
@@ -12,16 +13,20 @@ ENV PATH="/root/.local/bin:${PATH}"
 WORKDIR /app
 
 # Clone the repository at specific version
-ARG STOAT_VERSION=stoat-for-web-v0.1.0
-RUN git clone --recursive --branch ${STOAT_VERSION} --depth 1 \
-    https://github.com/stoatchat/for-web .
+# Override these to use forks or different branches:
+#   docker build --build-arg GIT_REPO=https://github.com/yourfork/for-web \
+#                --build-arg GIT_BRANCH=feature-branch .
+ARG GIT_REPO=https://github.com/stoatchat/for-web
+ARG GIT_BRANCH=stoat-for-web-v0.1.0
+RUN git clone --recursive --branch ${GIT_BRANCH} --depth 1 ${GIT_REPO} .
 
 # Set build-time environment variables for Vite
-# These will be baked into the JavaScript bundle
-ARG VITE_API_URL=https://stoat.example.com/api
-ARG VITE_WS_URL=wss://stoat.example.com/ws
-ARG VITE_MEDIA_URL=https://stoat.example.com/autumn
-ARG VITE_PROXY_URL=https://stoat.example.com/january
+# Use placeholder values that will be replaced by ingress sub_filter middleware
+# This allows the same image to be used with different domains
+ARG VITE_API_URL=https://{{__PLACEHOLDER_DOMAIN__}}/api
+ARG VITE_WS_URL=wss://{{__PLACEHOLDER_DOMAIN__}}/ws
+ARG VITE_MEDIA_URL=https://{{__PLACEHOLDER_DOMAIN__}}/autumn
+ARG VITE_PROXY_URL=https://{{__PLACEHOLDER_DOMAIN__}}/january
 
 # Create .env file for build
 RUN cd packages/client && \

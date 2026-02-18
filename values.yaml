@@ -9,6 +9,33 @@ global:
   # Domain name used for access, ex stoat.example.com
   domain: 'stoat.example.com'
 
+  # Master secret seed for deriving infrastructure passwords
+  # Generate with: openssl rand -hex 24
+  # Leave empty to generate random passwords on each install (non-reproducible)
+  # Provide a seed to make all passwords deterministic and reproducible
+  secretSeed: ''
+  
+  # Alternative: Read secretSeed from an existing Kubernetes Secret
+  # If set, this takes precedence over secretSeed above (more secure)
+  # Example:
+  #   existingSecretSeed:
+  #     name: "stoatchat-master-seed"
+  #     namespace: "default"  # optional, defaults to release namespace
+  #     key: "secretSeed"     # optional, defaults to "secretSeed"
+  existingSecretSeed:
+    name: ""
+    # namespace: ""  # optional
+    # key: "secretSeed"  # optional
+
+  secret:
+    # VAPID keys for push notifications (required)
+    # Generate with: ./generate_keys.sh
+    # Or leave empty if secret already exists from previous install
+    vapid_key: ''
+    vapid_public_key: ''
+    # File encryption key (auto-derived from secretSeed if empty)
+    encryption_key: ''
+
   web:
     port: 5000
   api:
@@ -24,7 +51,7 @@ global:
 
   livekit:
   - name: 'worldwide'
-    secret: ''
+    secret: ''  # Auto-derived from secretSeed if empty
     subdomain: ''
     # Ports (defaults shown, override if needed)
     http_port: 7880       # HTTP API port
@@ -36,11 +63,6 @@ global:
     # lon: 0.0 # optional
     # affinity: {}      # optional - standard Kubernetes affinity spec    - merged with top-level livekit.affinity (per-instance wins on conflict)
     # tolerations: []   # optional - standard Kubernetes tolerations list - concatenated with top-level livekit.tolerations
-
-  secret:
-    vapid_key: ''
-    vapid_public_key: ''
-    encryption_key: ''
 
   # Application configuration (maps to Revolt.toml)
   config:
@@ -182,27 +204,28 @@ global:
   subcharts:
     mongodb:
       enabled: true  # Set to false to use external MongoDB
-      connection_url: ''
+      connection_url: ''  # If set, overrides auto-generated internal connection
     redis:
       enabled: true  # Set to false to use external Redis
-      connection_url: ''
+      connection_url: ''  # If set, overrides auto-generated internal connection
     minio:
       enabled: true  # Set to false to use external MinIO
-      connection_url: ''
-      access_key_id: 'minioautumn'
-      secret_access_key: 'minioautumn'
+      connection_url: ''  # If set, overrides auto-generated internal connection
+      access_key_id: ''  # If set, overrides auto-derived credential
+      secret_access_key: ''  # If set, overrides auto-derived credential
     rabbitmq:
       enabled: true  # Set to false to use external RabbitMQ
-      host: ''
+      host: ''  # If set, uses external RabbitMQ
       port: 5672
       username: 'rabbituser'
-      password: 'rabbitpass'
+      # Password auto-derived from secretSeed for internal RabbitMQ
 
 
 mongodb:
   architecture: standalone
   auth:
-    enabled: false
+    enabled: true
+    existingSecret: "stoatchat-mongodb"  # Auto-generated, override to use external
   persistence:
     enabled: false
 
@@ -214,7 +237,9 @@ redis:
 #    pullPolicy: IfNotPresent
   architecture: standalone
   auth:
-    enabled: false
+    enabled: true
+    existingSecret: "stoatchat-redis"  # Auto-generated, override to use external
+    existingSecretPasswordKey: "redis-password"
   master:
     persistence:
       enabled: false
@@ -224,20 +249,17 @@ rabbitmq:
   replicaCount: 1
   auth:
     username: "rabbituser"
-    password: "rabbitpass"
+    existingPasswordSecret: "stoatchat-rabbitmq"  # Auto-generated, override to use external
   persistence:
     enabled: false
 
 
 minio:
   mode: standalone
-  rootUser: minioautumn
-  rootPassword: minioautumn
+  auth:
+    existingSecret: "stoatchat-minio"  # Auto-generated, override to use external
   persistence:
     enabled: false
-  auth:
-    rootUser: 'minioautumn'
-    rootPassword: 'minioautumn'
 
 
 # Web app

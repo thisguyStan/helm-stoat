@@ -36,3 +36,35 @@ web:
     tag: "v0.1.0"
     pullPolicy: IfNotPresent
 ```
+## Building Web Client
+
+### Basic Build (Default Repository)
+
+Build from the official Stoat repository:
+
+```bash
+cd build
+docker build -f Dockerfile -t ghcr.io/YOUR_USERNAME/stoat-for-web:v0.1.0 .
+docker push ghcr.io/YOUR_USERNAME/stoat-for-web:v0.1.0
+```
+
+### Advanced: Custom Repository/Branch (for Forks)
+
+The Dockerfile supports building from custom repositories and branches, useful when working with forks that have features not yet in the main repo:
+
+```bash
+# Build from a fork with a specific branch
+docker build -f Dockerfile \
+  --build-arg GIT_REPO=https://github.com/yourfork/for-web \
+  --build-arg GIT_BRANCH=feature-branch \
+  -t ghcr.io/YOUR_USERNAME/stoat-for-web:custom .
+
+# Build from a different tag/release
+docker build -f Dockerfile \
+  --build-arg GIT_BRANCH=v0.2.0 \
+  -t ghcr.io/YOUR_USERNAME/stoat-for-web:v0.2.0 .
+```
+
+**Available Build Arguments:**
+- `GIT_REPO` - Repository URL (default: `https://github.com/stoatchat/for-web`)
+- `GIT_BRANCH` - Branch, tag, or commit (default: `stoat-for-web-v0.1.0`)

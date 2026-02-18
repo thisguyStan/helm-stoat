@@ -6,7 +6,11 @@ on:
       version:
         description: 'Version tag for the image'
         required: true
-      web_branch:
+      git_repo:
+        description: 'Repository of the for-web project'
+        required: false
+        default: 'https://github.com/stoatchat/for-web'
+      git_branch:
         description: 'Branch of the for-web repository'
         required: false
         default: 'main'
@@ -64,18 +68,15 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./build
-          file: ./build/Dockerfile.web
+          file: ./build/Dockerfile
           push: true
           tags: |
             ${{ steps.meta.outputs.tags }}
             ${{ env.REGISTRY }}/${{ env.WEB_IMAGE_NAME }}:${{ steps.version.outputs.tag }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            STOAT_VERSION=${{ inputs.web_branch}}
-            VITE_API_URL=${{ vars.VITE_API_URL || 'https://stoat.example.com/api' }}
-            VITE_WS_URL=${{ vars.VITE_WS_URL || 'wss://stoat.example.com/ws' }}
-            VITE_MEDIA_URL=${{ vars.VITE_MEDIA_URL || 'https://stoat.example.com/autumn' }}
-            VITE_PROXY_URL=${{ vars.VITE_PROXY_URL || 'https://stoat.example.com/january' }}
+            GIT_REPO=${{ inputs.git_repo }}
+            GIT_BRANCH=${{ inputs.git_branch }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           platforms: linux/amd64

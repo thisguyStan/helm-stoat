@@ -1,0 +1,97 @@
+{{- $fullName := include "stoatchat.fullname" . -}}
+{{- if not (and .Values.global.secret.vapid_key .Values.global.secret.vapid_public_key) }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: "{{ $fullName }}-vapid-generator"
+  namespace: {{ .Values.global.namespace }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: "{{ $fullName }}-vapid-generator"
+  namespace: {{ .Values.global.namespace }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: "{{ $fullName }}-vapid-generator"
+  namespace: {{ .Values.global.namespace }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: "{{ $fullName }}-vapid-generator"
+subjects:
+- kind: ServiceAccount
+  name: "{{ $fullName }}-vapid-generator"
+  namespace: {{ .Values.global.namespace }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: "{{ $fullName }}-vapid-generator"
+  namespace: {{ .Values.global.namespace }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "0"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+spec:
+  template:
+    metadata:
+      name: "{{ $fullName }}-vapid-generator"
+    spec:
+      serviceAccountName: "{{ $fullName }}-vapid-generator"
+      restartPolicy: Never
+      containers:
+      - name: generate-vapid
+        image: alpine:3.19
+        command:
+        - /bin/sh
+        - -c
+        - |
+          set -e
+          
+          # Install requirements
+          apk add --no-cache openssl kubectl coreutils
+          
+          # Check if secret already exists
+          if kubectl get secret {{ $fullName }}-vapid -n {{ .Values.global.namespace }} >/dev/null 2>&1; then
+            echo "VAPID secret already exists, skipping generation"
+            exit 0
+          fi
+          
+          echo "Generating VAPID keys..."
+          
+          # Generate VAPID keys
+          openssl ecparam -name prime256v1 -genkey -noout -out /tmp/vapid_private.pem
+          PRIVATE_KEY=$(base64 -w 0 /tmp/vapid_private.pem | tr -d '=')
+          PUBLIC_KEY=$(openssl ec -in /tmp/vapid_private.pem -outform DER 2>/dev/null | tail -c 65 | base64 -w 0 | tr '/+' '_-' | tr -d '=')
+          rm /tmp/vapid_private.pem
+          
+          echo "Creating VAPID secret..."
+          
+          # Create secret
+          kubectl create secret generic {{ $fullName }}-vapid \
+            -n {{ .Values.global.namespace }} \
+            --from-literal=private_key="$PRIVATE_KEY" \
+            --from-literal=public_key="$PUBLIC_KEY"
+          
+          echo "VAPID secret created successfully"
+{{- end }}

@@ -3,10 +3,10 @@
   <img src="https://github.com/kubernetes/kubernetes/raw/master/logo/logo.png" width="60" style="vertical-align: middle;" />
 </p>
 
-> WIP this is yet to be tested,
-> I'm new to creating Helm charts.
->
+> Currently testing on a k3s cluster with nginx ingress
 > PRs welcome. We all want the best possible solution for this.
+
+Inspired also by [baptisterajaut](https://github.com/baptisterajaut/stoatchat-platform)
 
 # Stoat Helm Chart
 
@@ -23,34 +23,108 @@ To use the minimal setup, you will require
 - A valid hostname and the ability to access it via HTTPS (such as [cert-manager](https://cert-manager.io/docs/))
 - **For voice/video calls**: Node firewall rules allowing UDP port 7882 and TCP port 7881 (or custom ports if configured)
 
-1. Generate required config keys.  We provide a script to run in docker to generate it in this repo.
+1. Generate VAPID keys for push notifications:
    ```shell
    docker run --entrypoint /bin/ash -v ./:/data alpine/openssl /data/generate_keys.sh
    ```
-2. Fill out required config
+   **Note**: File encryption and infrastructure passwords are auto-derived. Only VAPID keys need manual generation.
+
+2. Fill out required config:
     ```yaml
     global:
       namespace: 'stoatchat'
       domain: 'stoat.example.com'
+      
+      # Optional: Master seed for reproducible passwords
+      # Generate with: openssl rand -hex 24
+      # If empty, passwords are randomly generated on each install
+      secretSeed: ''
+      
       ingress:
         enabled: true
         className: nginx
         annotations:
-          # Annotations may differ for other ingress controllers.  Consult your documentation.
           nginx.ingress.kubernetes.io/rewrite-target: /$2
           nginx.ingress.kubernetes.io/force-ssl-redirect: 'true'
           nginx.ingress.kubernetes.io/proxy-body-size: '0'
+      
       secret:
+        # Required: VAPID keys from generate_keys.sh
         vapid_key: ''
         vapid_public_key: ''
+        # Optional: Leave empty to auto-derive from secretSeed
         encryption_key: ''
+      
+      livekit:
+      - name: 'worldwide'
+        # Optional: Leave empty to auto-derive from secretSeed  
+        secret: ''
+        subdomain: 'livekit'
     ```
-3. Run `helm install ./ stoatchat -f my_values.yaml`
-4. Once it's done setting itself, up, access it at your external URL.  It may take a few minutes to spin up from scratch.
+
+3. Run `helm install stoatchat ./ -f my_values.yaml`
+4. Access your instance at your external URL. It may take a few minutes to spin up from scratch.
     
-Congrats, you have a minimal working setup. This is NOT production ready however.
-- There is no persistence is enabled by default, so everything is lost on restart.
-- The external connections such as MongoDB and Redis have no authentication.
+## Secret Management
+
+This chart uses deterministic secret derivation from a single `secretSeed`:
+
+- **Auto-derived secrets** (from `secretSeed`):
+  - MongoDB password
+  - Redis password  
+  - RabbitMQ password
+  - MinIO credentials
+  - LiveKit API secrets (per instance)
+  - File encryption key (if not provided)
+
+- **Must be generated** (cannot be derived):
+  - VAPID keypair (requires valid EC keys)
+
+**Benefits:**
+- Single seed reproduces all passwords (useful for disaster recovery)
+- No credential sprawl
+- Easy to rotate (change seed, redeploy)
+
+**Security Note:** Keep `secretSeed` secure. If compromised, all infrastructure passwords are exposed.
+
+### Using External Secrets
+
+**Option 1: Direct value** (simple, less secure)
+```yaml
+global:
+  secretSeed: "a1b2c3d4e5f6..."  # In values.yaml
+```
+
+**Option 2: Kubernetes Secret** (recommended for production)
+```bash
+# Create the secret
+kubectl create secret generic stoatchat-master-seed \
+  --from-literal=secretSeed="$(openssl rand -hex 24)"
+
+# Reference in values.yaml
+global:
+  existingSecretSeed:
+    name: "stoatchat-master-seed"
+    # namespace: "default"  # optional, defaults to release namespace
+    # key: "secretSeed"     # optional, defaults to "secretSeed"
+```
+
+**Option 3: External Secret Operators** (best for production)
+```yaml
+# Using External Secrets Operator, Sealed Secrets, or Vault
+# Create a Secret via your operator, then reference it:
+global:
+  existingSecretSeed:
+    name: "stoatchat-seed-from-vault"
+```
+
+If neither is provided, passwords are randomly generated on each install (non-reproducible).
+
+## Production Readiness
+
+The minimal setup is **NOT production ready**:
+- No persistence enabled by default (everything lost on restart)
+- Infrastructure passwords derived from seed (secure but simple)
 
 ## Persistence
 

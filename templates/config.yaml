@@ -11,14 +11,26 @@ data:
     production = false
 
     [database]
-    mongodb = {{ .Values.global.subcharts.mongodb.connection_url | default (printf "mongodb://%s-mongodb" $fullName) | quote }}
-    redis = {{ .Values.global.subcharts.redis.connection_url | default (printf "redis://%s-redis-master" $fullName) | quote }}
+    {{- if .Values.global.subcharts.mongodb.connection_url }}
+    mongodb = {{ .Values.global.subcharts.mongodb.connection_url | quote }}
+    {{- else if .Values.mongodb.auth.enabled }}
+    mongodb = {{ printf "mongodb://root:%s@%s-mongodb/revolt?authSource=admin" (include "stoatchat.deriveSecret" (dict "root" . "id" "mongodb" "length" 32)) $fullName | quote }}
+    {{- else }}
+    mongodb = {{ printf "mongodb://%s-mongodb" $fullName | quote }}
+    {{- end }}
+    {{- if .Values.global.subcharts.redis.connection_url }}
+    redis = {{ .Values.global.subcharts.redis.connection_url | quote }}
+    {{- else if .Values.redis.auth.enabled }}
+    redis = {{ printf "redis://:%s@%s-redis-master" (include "stoatchat.deriveSecret" (dict "root" . "id" "redis" "length" 32)) $fullName | quote }}
+    {{- else }}
+    redis = {{ printf "redis://%s-redis-master" $fullName | quote }}
+    {{- end }}
 
     [rabbit]
     host = {{ .Values.global.subcharts.rabbitmq.host | default (printf "%s-rabbitmq" $fullName) | quote }}
     port = {{ .Values.global.subcharts.rabbitmq.port }}
-    username = {{ .Values.global.subcharts.rabbitmq.username | quote }}
-    password = {{ .Values.global.subcharts.rabbitmq.password | quote }}
+    username = {{ .Values.rabbitmq.auth.username | quote }}
+    password = {{ include "stoatchat.deriveSecret" (dict "root" . "id" "rabbitmq" "length" 32) | quote }}
 
     [hosts]
     app = "https://{{ .Values.global.domain }}"
@@ -85,8 +97,8 @@ data:
     production = {{ .Values.global.config.production }}
 
     [pushd.vapid]
-    private_key = {{ .Values.global.secret.vapid_key | quote }}
-    public_key = {{ .Values.global.secret.vapid_public_key | quote }}
+    private_key = {{ include "stoatchat.vapidPrivateKey" . | quote }}
+    public_key = {{ include "stoatchat.vapidPublicKey" . | quote }}
 
     [pushd.fcm]
     {{- with .Values.global.config.pushd.fcm }}
@@ -111,7 +123,7 @@ data:
     {{- end }}
 
     [files]
-    encryption_key = {{ .Values.global.secret.encryption_key | quote }}
+    encryption_key = {{ include "stoatchat.fileEncryptionKey" . | quote }}
     webp_quality = {{ .Values.global.config.files.webp_quality }}
     blocked_mime_types = {{ .Values.global.config.files.blocked_mime_types | toJson }}
     clamd_host = {{ .Values.global.config.files.clamd_host | quote }}
@@ -125,9 +137,9 @@ data:
     # S3 region name
     region = "minio"
     # S3 protocol key ID
-    access_key_id = {{ .Values.global.subcharts.minio.access_key_id | default .Values.minio.rootUser | default "minioautumn" | quote }}
+    access_key_id = {{ .Values.global.subcharts.minio.access_key_id | default (include "stoatchat.deriveSecret" (dict "root" . "id" "minio-user" "length" 12)) | quote }}
     # S3 protocol access key
-    secret_access_key = {{ .Values.global.subcharts.minio.secret_access_key | default .Values.minio.rootPassword | default "minioautumn" | quote }}
+    secret_access_key = {{ .Values.global.subcharts.minio.secret_access_key | default (include "stoatchat.deriveSecret" (dict "root" . "id" "minio-pass" "length" 32)) | quote }}
     default_bucket = "revolt-uploads"
 
     [features]
