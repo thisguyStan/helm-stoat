@@ -65,6 +65,8 @@ global:
 
   # Application configuration (maps to Revolt.toml)
   config:
+    production: false
+
     # Registration settings
     registration:
       invite_only: false

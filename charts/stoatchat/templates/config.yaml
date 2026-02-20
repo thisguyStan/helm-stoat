@@ -9,7 +9,7 @@ metadata:
 type: Opaque
 stringData:
   Revolt.toml: |
-    production = false
+    production = {{ .Values.global.config.production }}
 
     [database]
     {{- if .Values.global.subcharts.mongodb.connection_url }}
