@@ -99,7 +99,46 @@ Usage: {{ include "stoatchat.deriveSecret" (dict "root" . "id" "identifier" "len
 {{- if $seed -}}
   {{- printf "%s:%s" $seed .id | sha256sum | trunc $length -}}
 {{- else -}}
-  {{- randAlphaNum $length -}}
+  {{- $namespace := default .root.Release.Namespace .root.Values.global.namespace -}}
+  {{- $fullName := include "stoatchat.fullname" .root -}}
+  {{- $existing := "" -}}
+  {{- if eq .id "mongodb" -}}
+    {{- $secret := lookup "v1" "Secret" $namespace (printf "%s-mongodb" $fullName) -}}
+    {{- if and $secret (hasKey $secret.data "mongodb-root-password") -}}
+      {{- $existing = index $secret.data "mongodb-root-password" | b64dec -}}
+    {{- end -}}
+  {{- else if eq .id "redis" -}}
+    {{- $secret := lookup "v1" "Secret" $namespace (printf "%s-redis" $fullName) -}}
+    {{- if and $secret (hasKey $secret.data "redis-password") -}}
+      {{- $existing = index $secret.data "redis-password" | b64dec -}}
+    {{- end -}}
+  {{- else if eq .id "rabbitmq" -}}
+    {{- $secret := lookup "v1" "Secret" $namespace (printf "%s-rabbitmq" $fullName) -}}
+    {{- if and $secret (hasKey $secret.data "rabbitmq-password") -}}
+      {{- $existing = index $secret.data "rabbitmq-password" | b64dec -}}
+    {{- end -}}
+  {{- else if eq .id "minio-user" -}}
+    {{- $secret := lookup "v1" "Secret" $namespace (printf "%s-minio" $fullName) -}}
+    {{- if and $secret (hasKey $secret.data "root-user") -}}
+      {{- $existing = index $secret.data "root-user" | b64dec -}}
+    {{- end -}}
+  {{- else if eq .id "minio-pass" -}}
+    {{- $secret := lookup "v1" "Secret" $namespace (printf "%s-minio" $fullName) -}}
+    {{- if and $secret (hasKey $secret.data "root-password") -}}
+      {{- $existing = index $secret.data "root-password" | b64dec -}}
+    {{- end -}}
+  {{- end -}}
+
+  {{- if $existing -}}
+    {{- $existing | trunc $length -}}
+  {{- else -}}
+    {{- $ns := lookup "v1" "Namespace" "" $namespace -}}
+    {{- if $ns -}}
+      {{- printf "%s:%s" $ns.metadata.uid .id | sha256sum | trunc $length -}}
+    {{- else -}}
+      {{- printf "%s:%s:%s" .root.Release.Name $namespace .id | sha256sum | trunc $length -}}
+    {{- end -}}
+  {{- end -}}
 {{- end -}}
 {{- end -}}
 
