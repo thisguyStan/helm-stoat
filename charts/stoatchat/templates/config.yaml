@@ -138,7 +138,7 @@ stringData:
     access_key_id = {{ include "stoatchat.secretValue" (dict "root" . "key" "minio.access_key_id" "default" (.Values.global.subcharts.minio.access_key_id | default (include "stoatchat.deriveSecret" (dict "root" . "id" "minio-user" "length" 12)))) | quote }}
     # S3 protocol access key
     secret_access_key = {{ include "stoatchat.secretValue" (dict "root" . "key" "minio.secret_access_key" "default" (.Values.global.subcharts.minio.secret_access_key | default (include "stoatchat.deriveSecret" (dict "root" . "id" "minio-pass" "length" 32)))) | quote }}
-    default_bucket = "revolt-uploads"
+    default_bucket = {{ .Values.global.config.files.s3.default_bucket | default "revolt-upload" | quote }}
 
     [features]
     webhooks_enabled = {{ .Values.global.config.features.webhooks_enabled }}

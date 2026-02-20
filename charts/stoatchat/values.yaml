@@ -106,6 +106,8 @@ global:
       blocked_mime_types: []
       # ClamAV antivirus hostname:port (leave empty to disable)
       clamd_host: ''
+      s3:
+        default_bucket: ''
 
     # Livekit API settings
     livekit:
@@ -460,6 +462,7 @@ voiceIngress:
 
 # Pre-install job that ensures required S3 bucket exists
 createBuckets:
+  enabled: true
   extra_volumes: []
   extra_volumeMounts: []
 

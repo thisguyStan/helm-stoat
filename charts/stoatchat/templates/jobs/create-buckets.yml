@@ -1,3 +1,4 @@
+{{- if .Values.createBuckets.enabled }}
 {{- $fullName := include "stoatchat.fullname" . -}}
 {{- $s3Endpoint := .Values.global.subcharts.minio.connection_url | default (printf "http://%s-minio:9000" $fullName) -}}
 
@@ -122,4 +123,6 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+
+{{- end }}
 
