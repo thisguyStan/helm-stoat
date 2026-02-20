@@ -114,7 +114,7 @@ kubectl create secret generic stoatchat-master-seed \
 global:
   existingSecret:
     name: "stoatchat-master-seed"
-    # namespace: "default"  # optional, defaults to release namespace
+    # namespace: "stoatchat"  # optional, must match global.namespace
 ```
 
 **Option 3: External Secret Operators** (best for production)
@@ -127,7 +127,7 @@ global:
 ```
 
 Supported key examples in this single secret include `secretSeed`, `smtp.username`, `smtp.password`, `rabbitmq.password`, `minio.access_key_id`, `minio.secret_access_key`, and others used in `Revolt.toml`.
-If a key is missing, Helm falls back to `values.yaml` (or existing derived defaults where applicable).
+If a key is missing, the pre-install/pre-upgrade render job falls back to `values.yaml` (or derived defaults where applicable) on a per-key basis.
 
 ## Production Readiness
 

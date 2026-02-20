@@ -1,0 +1,344 @@
+{{- $fullName := include "stoatchat.fullname" . -}}
+{{- if and .Values.global.existingSecret.name .Values.global.existingSecret.namespace (ne .Values.global.existingSecret.namespace .Values.global.namespace) -}}
+{{- fail "global.existingSecret.namespace must match global.namespace because render-config mounts the Secret as a pod volume." -}}
+{{- end -}}
+{{- $livekitSecrets := dict -}}
+{{- range $v := .Values.global.livekit -}}
+{{- $_ := set $livekitSecrets $v.name ($v.secret | default (include "stoatchat.deriveSecret" (dict "root" $ "id" (printf "livekit-%s" $v.name) "length" 32))) -}}
+{{- end -}}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ $fullName }}-config-render
+  namespace: {{ .Values.global.namespace }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-6"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+  labels:
+    {{- include "stoatchat.labels" . | nindent 4 }}
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ $fullName }}-config-render
+  namespace: {{ .Values.global.namespace }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-6"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+  labels:
+    {{- include "stoatchat.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "create", "update", "patch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "patch"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ $fullName }}-config-render
+  namespace: {{ .Values.global.namespace }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-6"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+  labels:
+    {{- include "stoatchat.labels" . | nindent 4 }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ $fullName }}-config-render
+    namespace: {{ .Values.global.namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ $fullName }}-config-render
+
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ $fullName }}-render-config
+  namespace: {{ .Values.global.namespace }}
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "-5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+  labels:
+    {{- include "stoatchat.labels" . | nindent 4 }}
+    stoat-app: {{ $fullName }}-render-config
+spec:
+  backoffLimit: 2
+  template:
+    metadata:
+      labels:
+        stoat-app: {{ $fullName }}-render-config
+        {{- include "stoatchat.labels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ $fullName }}-config-render
+      restartPolicy: Never
+      initContainers:
+        - name: build-config
+          image: python:3.12-alpine
+          imagePullPolicy: IfNotPresent
+          command:
+            - python
+            - -c
+            - |
+              import json
+              import os
+              from pathlib import Path
+
+              source = Path('/template/Revolt.toml')
+              target = Path('/work/Revolt.toml')
+              content = source.read_text()
+              lines = content.splitlines()
+
+              mapping = [
+                  ('database', 'mongodb', 'database.mongodb'),
+                  ('database', 'redis', 'database.redis'),
+                  ('rabbit', 'password', 'rabbitmq.password'),
+                  ('api.smtp', 'username', 'smtp.username'),
+                  ('api.smtp', 'password', 'smtp.password'),
+                  ('api.security', 'authifier_shield_key', 'security.authifier_shield_key'),
+                  ('api.security', 'tenor_key', 'security.tenor_key'),
+                  ('api.security.captcha', 'hcaptcha_key', 'security.captcha.hcaptcha_key'),
+                  ('api.security.captcha', 'hcaptcha_sitekey', 'security.captcha.hcaptcha_sitekey'),
+                  ('pushd.vapid', 'private_key', 'vapid_key'),
+                  ('pushd.vapid', 'public_key', 'vapid_public_key'),
+                  ('pushd.fcm', 'key_type', 'pushd.fcm.key_type'),
+                  ('pushd.fcm', 'project_id', 'pushd.fcm.project_id'),
+                  ('pushd.fcm', 'private_key_id', 'pushd.fcm.private_key_id'),
+                  ('pushd.fcm', 'private_key', 'pushd.fcm.private_key'),
+                  ('pushd.fcm', 'client_email', 'pushd.fcm.client_email'),
+                  ('pushd.fcm', 'client_id', 'pushd.fcm.client_id'),
+                  ('pushd.fcm', 'auth_uri', 'pushd.fcm.auth_uri'),
+                  ('pushd.fcm', 'token_uri', 'pushd.fcm.token_uri'),
+                  ('pushd.fcm', 'auth_provider_x509_cert_url', 'pushd.fcm.auth_provider_x509_cert_url'),
+                  ('pushd.fcm', 'client_x509_cert_url', 'pushd.fcm.client_x509_cert_url'),
+                  ('pushd.apn', 'pkcs8', 'pushd.apn.pkcs8'),
+                  ('pushd.apn', 'key_id', 'pushd.apn.key_id'),
+                  ('pushd.apn', 'team_id', 'pushd.apn.team_id'),
+                  ('files', 'encryption_key', 'encryption_key'),
+                  ('files.s3', 'access_key_id', 'minio.access_key_id'),
+                  ('files.s3', 'secret_access_key', 'minio.secret_access_key'),
+              ]
+
+              secret_values = {}
+                fallback_values = {
+                  'database.mongodb': os.getenv('FALLBACK_DATABASE_MONGODB', '').strip(),
+                  'database.redis': os.getenv('FALLBACK_DATABASE_REDIS', '').strip(),
+                  'rabbitmq.password': os.getenv('FALLBACK_RABBITMQ_PASSWORD', '').strip(),
+                  'smtp.username': os.getenv('FALLBACK_SMTP_USERNAME', '').strip(),
+                  'smtp.password': os.getenv('FALLBACK_SMTP_PASSWORD', '').strip(),
+                  'security.authifier_shield_key': os.getenv('FALLBACK_SECURITY_AUTHIFIER_SHIELD_KEY', '').strip(),
+                  'security.tenor_key': os.getenv('FALLBACK_SECURITY_TENOR_KEY', '').strip(),
+                  'security.captcha.hcaptcha_key': os.getenv('FALLBACK_SECURITY_CAPTCHA_HCAPTCHA_KEY', '').strip(),
+                  'security.captcha.hcaptcha_sitekey': os.getenv('FALLBACK_SECURITY_CAPTCHA_HCAPTCHA_SITEKEY', '').strip(),
+                  'pushd.fcm.key_type': os.getenv('FALLBACK_PUSHD_FCM_KEY_TYPE', '').strip(),
+                  'pushd.fcm.project_id': os.getenv('FALLBACK_PUSHD_FCM_PROJECT_ID', '').strip(),
+                  'pushd.fcm.private_key_id': os.getenv('FALLBACK_PUSHD_FCM_PRIVATE_KEY_ID', '').strip(),
+                  'pushd.fcm.private_key': os.getenv('FALLBACK_PUSHD_FCM_PRIVATE_KEY', '').strip(),
+                  'pushd.fcm.client_email': os.getenv('FALLBACK_PUSHD_FCM_CLIENT_EMAIL', '').strip(),
+                  'pushd.fcm.client_id': os.getenv('FALLBACK_PUSHD_FCM_CLIENT_ID', '').strip(),
+                  'pushd.fcm.auth_uri': os.getenv('FALLBACK_PUSHD_FCM_AUTH_URI', '').strip(),
+                  'pushd.fcm.token_uri': os.getenv('FALLBACK_PUSHD_FCM_TOKEN_URI', '').strip(),
+                  'pushd.fcm.auth_provider_x509_cert_url': os.getenv('FALLBACK_PUSHD_FCM_AUTH_PROVIDER_X509_CERT_URL', '').strip(),
+                  'pushd.fcm.client_x509_cert_url': os.getenv('FALLBACK_PUSHD_FCM_CLIENT_X509_CERT_URL', '').strip(),
+                  'pushd.apn.pkcs8': os.getenv('FALLBACK_PUSHD_APN_PKCS8', '').strip(),
+                  'pushd.apn.key_id': os.getenv('FALLBACK_PUSHD_APN_KEY_ID', '').strip(),
+                  'pushd.apn.team_id': os.getenv('FALLBACK_PUSHD_APN_TEAM_ID', '').strip(),
+                  'encryption_key': os.getenv('FALLBACK_ENCRYPTION_KEY', '').strip(),
+                  'minio.access_key_id': os.getenv('FALLBACK_MINIO_ACCESS_KEY_ID', '').strip(),
+                  'minio.secret_access_key': os.getenv('FALLBACK_MINIO_SECRET_ACCESS_KEY', '').strip(),
+                  'vapid_key': os.getenv('FALLBACK_VAPID_PRIVATE_KEY', '').strip(),
+                  'vapid_public_key': os.getenv('FALLBACK_VAPID_PUBLIC_KEY', '').strip(),
+                }
+
+                livekit_secrets = {}
+                livekit_json = os.getenv('FALLBACK_LIVEKIT_SECRETS_JSON', '').strip()
+                if livekit_json:
+                    try:
+                        livekit_secrets = json.loads(livekit_json)
+                    except json.JSONDecodeError:
+                        livekit_secrets = {}
+
+              existing_dir = Path('/existing')
+              if existing_dir.exists():
+                  for _, _, secret_key in mapping:
+                      secret_path = existing_dir / secret_key
+                      if secret_path.exists():
+                          secret_values[secret_key] = secret_path.read_text().strip()
+
+                vapid_dir = Path('/vapid')
+                if vapid_dir.exists():
+                  private_key = vapid_dir / 'private_key'
+                  public_key = vapid_dir / 'public_key'
+                  if 'vapid_key' not in secret_values and private_key.exists():
+                        secret_values['vapid_key'] = private_key.read_text().strip()
+                  if 'vapid_public_key' not in secret_values and public_key.exists():
+                        secret_values['vapid_public_key'] = public_key.read_text().strip()
+
+                for secret_key, fallback_value in fallback_values.items():
+                    if secret_key not in secret_values and fallback_value:
+                      secret_values[secret_key] = fallback_value
+
+              current_section = None
+              for index, line in enumerate(lines):
+                  if line.startswith('[') and line.endswith(']'):
+                      current_section = line[1:-1]
+                      continue
+
+                    if current_section and current_section.startswith('api.livekit.nodes.') and line.startswith('    secret = '):
+                      node_name = current_section.split('.')[-1]
+                      fallback_livekit_secret = str(livekit_secrets.get(node_name, '')).strip()
+                      if fallback_livekit_secret:
+                            value = fallback_livekit_secret.replace('\\', '\\\\').replace('"', '\\"')
+                            lines[index] = f'    secret = "{value}"'
+                      continue
+
+                  for section, key, secret_key in mapping:
+                      if current_section == section and secret_key in secret_values and line.startswith(f'    {key} = '):
+                          value = secret_values[secret_key].replace('\\', '\\\\').replace('"', '\\"')
+                          lines[index] = f'    {key} = "{value}"'
+                          break
+
+              output = '\n'.join(lines)
+              if content.endswith('\n'):
+                  output += '\n'
+              target.write_text(output)
+          volumeMounts:
+            - name: config-template
+              mountPath: /template
+              readOnly: true
+            - name: config-work
+              mountPath: /work
+            {{- if and .Values.global.existingSecret .Values.global.existingSecret.name }}
+            - name: existing-secret
+              mountPath: /existing
+              readOnly: true
+            {{- end }}
+            - name: vapid-secret
+              mountPath: /vapid
+              readOnly: true
+          env:
+            - name: FALLBACK_DATABASE_MONGODB
+              value: {{ if .Values.global.subcharts.mongodb.connection_url }}{{ .Values.global.subcharts.mongodb.connection_url | quote }}{{ else if .Values.mongodb.auth.enabled }}{{ printf "mongodb://root:%s@%s-mongodb/revolt?authSource=admin" (include "stoatchat.deriveSecret" (dict "root" . "id" "mongodb" "length" 32)) $fullName | quote }}{{ else }}{{ printf "mongodb://%s-mongodb" $fullName | quote }}{{ end }}
+            - name: FALLBACK_DATABASE_REDIS
+              value: {{ if .Values.global.subcharts.redis.connection_url }}{{ .Values.global.subcharts.redis.connection_url | quote }}{{ else if .Values.redis.auth.enabled }}{{ printf "redis://:%s@%s-redis-master" (include "stoatchat.deriveSecret" (dict "root" . "id" "redis" "length" 32)) $fullName | quote }}{{ else }}{{ printf "redis://%s-redis-master" $fullName | quote }}{{ end }}
+            - name: FALLBACK_RABBITMQ_PASSWORD
+              value: {{ include "stoatchat.deriveSecret" (dict "root" . "id" "rabbitmq" "length" 32) | quote }}
+            - name: FALLBACK_SMTP_USERNAME
+              value: {{ .Values.global.config.smtp.username | quote }}
+            - name: FALLBACK_SMTP_PASSWORD
+              value: {{ .Values.global.config.smtp.password | quote }}
+            - name: FALLBACK_SECURITY_AUTHIFIER_SHIELD_KEY
+              value: {{ .Values.global.config.security.authifier_shield_key | quote }}
+            - name: FALLBACK_SECURITY_TENOR_KEY
+              value: {{ .Values.global.config.security.tenor_key | quote }}
+            - name: FALLBACK_SECURITY_CAPTCHA_HCAPTCHA_KEY
+              value: {{ .Values.global.config.security.captcha.hcaptcha_key | quote }}
+            - name: FALLBACK_SECURITY_CAPTCHA_HCAPTCHA_SITEKEY
+              value: {{ .Values.global.config.security.captcha.hcaptcha_sitekey | quote }}
+            - name: FALLBACK_PUSHD_FCM_KEY_TYPE
+              value: {{ with .Values.global.config.pushd.fcm }}{{ .key_type | quote }}{{ else }}""{{ end }}
+            - name: FALLBACK_PUSHD_FCM_PROJECT_ID
+              value: {{ with .Values.global.config.pushd.fcm }}{{ .project_id | quote }}{{ else }}""{{ end }}
+            - name: FALLBACK_PUSHD_FCM_PRIVATE_KEY_ID
+              value: {{ with .Values.global.config.pushd.fcm }}{{ .private_key_id | quote }}{{ else }}""{{ end }}
+            - name: FALLBACK_PUSHD_FCM_PRIVATE_KEY
+              value: {{ with .Values.global.config.pushd.fcm }}{{ .private_key | quote }}{{ else }}""{{ end }}
+            - name: FALLBACK_PUSHD_FCM_CLIENT_EMAIL
+              value: {{ with .Values.global.config.pushd.fcm }}{{ .client_email | quote }}{{ else }}""{{ end }}
+            - name: FALLBACK_PUSHD_FCM_CLIENT_ID
+              value: {{ with .Values.global.config.pushd.fcm }}{{ .client_id | quote }}{{ else }}""{{ end }}
+            - name: FALLBACK_PUSHD_FCM_AUTH_URI
+              value: {{ with .Values.global.config.pushd.fcm }}{{ .auth_uri | quote }}{{ else }}""{{ end }}
+            - name: FALLBACK_PUSHD_FCM_TOKEN_URI
+              value: {{ with .Values.global.config.pushd.fcm }}{{ .token_uri | quote }}{{ else }}""{{ end }}
+            - name: FALLBACK_PUSHD_FCM_AUTH_PROVIDER_X509_CERT_URL
+              value: {{ with .Values.global.config.pushd.fcm }}{{ .auth_provider_x509_cert_url | quote }}{{ else }}""{{ end }}
+            - name: FALLBACK_PUSHD_FCM_CLIENT_X509_CERT_URL
+              value: {{ with .Values.global.config.pushd.fcm }}{{ .client_x509_cert_url | quote }}{{ else }}""{{ end }}
+            - name: FALLBACK_PUSHD_APN_PKCS8
+              value: {{ with .Values.global.config.pushd.apn }}{{ .pkcs8 | quote }}{{ else }}""{{ end }}
+            - name: FALLBACK_PUSHD_APN_KEY_ID
+              value: {{ with .Values.global.config.pushd.apn }}{{ .key_id | quote }}{{ else }}""{{ end }}
+            - name: FALLBACK_PUSHD_APN_TEAM_ID
+              value: {{ with .Values.global.config.pushd.apn }}{{ .team_id | quote }}{{ else }}""{{ end }}
+            - name: FALLBACK_ENCRYPTION_KEY
+              value: {{ include "stoatchat.fileEncryptionKey" . | quote }}
+            - name: FALLBACK_MINIO_ACCESS_KEY_ID
+              value: {{ .Values.global.subcharts.minio.access_key_id | default (include "stoatchat.deriveSecret" (dict "root" . "id" "minio-user" "length" 12)) | quote }}
+            - name: FALLBACK_MINIO_SECRET_ACCESS_KEY
+              value: {{ .Values.global.subcharts.minio.secret_access_key | default (include "stoatchat.deriveSecret" (dict "root" . "id" "minio-pass" "length" 32)) | quote }}
+            - name: FALLBACK_VAPID_PRIVATE_KEY
+              value: {{ .Values.global.secret.vapid_key | quote }}
+            - name: FALLBACK_VAPID_PUBLIC_KEY
+              value: {{ .Values.global.secret.vapid_public_key | quote }}
+            - name: FALLBACK_LIVEKIT_SECRETS_JSON
+              value: {{ $livekitSecrets | toJson | quote }}
+      containers:
+        - name: apply-config
+          image: bitnami/kubectl:1.31
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -eu
+
+              old_hash=""
+              if kubectl get secret "{{ $fullName }}-config" -n "{{ .Values.global.namespace }}" >/dev/null 2>&1; then
+                old_hash="$(kubectl get secret "{{ $fullName }}-config" -n "{{ .Values.global.namespace }}" -o jsonpath='{.metadata.annotations.stoatchat\.io/config-hash}' 2>/dev/null || true)"
+              fi
+
+              new_hash="$(sha256sum /work/Revolt.toml | awk '{print $1}')"
+
+              kubectl create secret generic "{{ $fullName }}-config" \
+                --namespace "{{ .Values.global.namespace }}" \
+                --from-file=Revolt.toml=/work/Revolt.toml \
+                --dry-run=client -o yaml | kubectl apply -f -
+
+              kubectl annotate secret "{{ $fullName }}-config" \
+                -n "{{ .Values.global.namespace }}" \
+                "stoatchat.io/config-hash=${new_hash}" \
+                "helm.sh/resource-policy=keep" \
+                --overwrite >/dev/null
+
+              if [ "${old_hash}" != "${new_hash}" ]; then
+                for suffix in api autumn bonfire crond gifbox january pushd voice-ingress; do
+                  kubectl patch deployment "{{ $fullName }}-${suffix}" \
+                    -n "{{ .Values.global.namespace }}" \
+                    --type=merge \
+                    -p "{\"spec\":{\"template\":{\"metadata\":{\"annotations\":{\"stoatchat.io/config-hash\":\"${new_hash}\"}}}}}" >/dev/null 2>&1 || true
+                done
+              fi
+          volumeMounts:
+            - name: config-work
+              mountPath: /work
+      volumes:
+        - name: config-template
+          configMap:
+            name: {{ $fullName }}-config-template
+            items:
+              - key: Revolt.toml
+                path: Revolt.toml
+        - name: config-work
+          emptyDir: {}
+        {{- if and .Values.global.existingSecret .Values.global.existingSecret.name }}
+        - name: existing-secret
+          secret:
+            secretName: {{ .Values.global.existingSecret.name | quote }}
+            optional: true
+        {{- end }}
+        - name: vapid-secret
+          secret:
+            secretName: {{ printf "%s-vapid" $fullName | quote }}
+            optional: true

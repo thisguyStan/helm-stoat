@@ -20,8 +20,7 @@ global:
   # Typical keys: secretSeed, smtp.username, smtp.password, minio.access_key_id, minio.secret_access_key
   # Example:
   #   existingSecret:
-  #     name: "stoatchat-master-seed"
-  #     namespace: "default"  # optional, defaults to global.namespace
+  #     name: "stoatchat-master-seed"  # must be in the same namespace as global.namespace
   existingSecret:
     name: ""
     # namespace: ""  # optional
