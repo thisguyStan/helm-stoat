@@ -224,7 +224,7 @@ mongodb:
   architecture: standalone
   auth:
     enabled: true
-    existingSecret: "stoatchat-mongodb"  # Auto-generated, override to use external
+    existingSecret: ""  # Leave empty to auto-generate; set to use external
   persistence:
     enabled: false
 
@@ -237,7 +237,7 @@ redis:
   architecture: standalone
   auth:
     enabled: true
-    existingSecret: "stoatchat-redis"  # Auto-generated, override to use external
+    existingSecret: ""  # Leave empty to auto-generate; set to use external
     existingSecretPasswordKey: "redis-password"
   master:
     persistence:
@@ -248,7 +248,7 @@ rabbitmq:
   replicaCount: 1
   auth:
     username: "rabbituser"
-    existingPasswordSecret: "stoatchat-rabbitmq"  # Auto-generated, override to use external
+    existingPasswordSecret: ""  # Leave empty to auto-generate; set to use external
   persistence:
     enabled: false
 
@@ -256,7 +256,7 @@ rabbitmq:
 minio:
   mode: standalone
   auth:
-    existingSecret: "stoatchat-minio"  # Auto-generated, override to use external
+    existingSecret: ""  # Leave empty to auto-generate; set to use external
   persistence:
     enabled: false
 
