@@ -29,6 +29,9 @@ spec:
         - name: web
           image: "{{ .Values.web.image.repository }}:{{ .Values.web.image.tag }}"
           imagePullPolicy: {{ .Values.web.image.pullPolicy }}
+          env:
+            - name: DOMAIN
+              value: {{ .Values.global.domain | quote }}
           ports:
             - name: http
               containerPort: 80

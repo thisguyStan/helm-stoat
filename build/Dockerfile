@@ -66,6 +66,13 @@ RUN echo 'server { \
     } \
 }' > /etc/nginx/conf.d/default.conf
 
+# Entrypoint script: replace placeholder domain with actual domain at startup
+# This removes the need for ingress-level sub_filter/configuration-snippet,
+# making the image compatible with any ingress controller (nginx, traefik, etc.)
+RUN printf '#!/bin/sh\nset -e\nif [ -n "$DOMAIN" ]; then\n  find /usr/share/nginx/html -type f \\( -name "*.js" -o -name "*.html" \\) -exec sed -i "s|{{__PLACEHOLDER_DOMAIN__}}|${DOMAIN}|g" {} +\nfi\nexec "$@"\n' > /docker-entrypoint-replace.sh \
+    && chmod +x /docker-entrypoint-replace.sh
+
 EXPOSE 80
 
+ENTRYPOINT ["/docker-entrypoint-replace.sh"]
 CMD ["nginx", "-g", "daemon off;"]
