@@ -20,10 +20,10 @@ metadata:
   namespace: {{ .Values.global.namespace }}
   labels:
     {{- include "stoatchat.labels" . | nindent 4 }}
-  {{- with .Values.global.ingress.annotations }}
   annotations:
+    {{- with .Values.global.ingress.annotations }}
     {{- toYaml . | nindent 4 }}
-  {{- end }}
+    {{- end }}
     kubernetes.io/tls-acme: "true"
     {{- if or (eq .Values.global.ingress.className "nginx") (eq .Values.global.ingress.className "ingress-nginx") }}
     nginx.ingress.kubernetes.io/use-regex: "true"
