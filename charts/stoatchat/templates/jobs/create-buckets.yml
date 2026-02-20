@@ -47,9 +47,9 @@ spec:
             - name: S3_BUCKET
               value: "revolt-uploads"
             - name: S3_ACCESS_KEY
-              value: {{ .Values.global.subcharts.minio.access_key_id | default .Values.minio.rootUser | default "minioautumn" | quote }}
+              value: {{ include "stoatchat.secretValue" (dict "root" . "key" "minio.access_key_id" "default" (.Values.global.subcharts.minio.access_key_id | default .Values.minio.rootUser | default "minioautumn")) | quote }}
             - name: S3_SECRET_KEY
-              value: {{ .Values.global.subcharts.minio.secret_access_key | default .Values.minio.rootPassword | default "minioautumn" | quote }}
+              value: {{ include "stoatchat.secretValue" (dict "root" . "key" "minio.secret_access_key" "default" (.Values.global.subcharts.minio.secret_access_key | default .Values.minio.rootPassword | default "minioautumn")) | quote }}
       {{- with .Values.web.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
