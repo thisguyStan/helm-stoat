@@ -284,6 +284,12 @@ web:
     type: ClusterIP
   extra_volumes: []
   extra_volumeMounts: []
+  # Additional environment variables for the web container
+  # Example:
+  #   extraEnv:
+  #     - name: MY_VAR
+  #       value: "my-value"
+  extraEnv: []
 
 
 # Revolt API Server

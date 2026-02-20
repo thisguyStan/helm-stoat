@@ -29,8 +29,9 @@ jobs:
       packages: write
     
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Clone for-web repository
+        run: |
+          git clone --recursive --branch ${{ inputs.git_branch }} --depth 1 ${{ inputs.git_repo }} build
 
       - name: Set lowercase image name
         id: image_name
@@ -80,9 +81,6 @@ jobs:
             ${{ steps.meta.outputs.tags }}
             ${{ env.REGISTRY }}/${{ steps.image_name.outputs.name }}:${{ steps.version.outputs.tag }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            GIT_REPO=${{ inputs.git_repo }}
-            GIT_BRANCH=${{ inputs.git_branch }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           platforms: linux/amd64

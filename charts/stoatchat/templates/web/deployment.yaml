@@ -30,11 +30,26 @@ spec:
           image: "{{ .Values.web.image.repository }}:{{ .Values.web.image.tag }}"
           imagePullPolicy: {{ .Values.web.image.pullPolicy }}
           env:
-            - name: DOMAIN
-              value: {{ .Values.global.domain | quote }}
+            - name: VITE_API_URL
+              value: "https://{{ .Values.global.domain }}/api"
+            - name: VITE_WS_URL
+              value: "wss://{{ .Values.global.domain }}/ws"
+            - name: VITE_MEDIA_URL
+              value: "https://{{ .Values.global.domain }}/autumn"
+            - name: VITE_PROXY_URL
+              value: "https://{{ .Values.global.domain }}/january"
+            - name: REVOLT_PUBLIC_URL
+              value: "https://{{ .Values.global.domain }}"
+            {{- with .Values.global.config.security.captcha.hcaptcha_sitekey }}
+            - name: VITE_HCAPTCHA_SITEKEY
+              value: {{ . | quote }}
+            {{- end }}
+            {{- with .Values.web.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           ports:
             - name: http
-              containerPort: 80
+              containerPort: {{ .Values.global.web.port }}
               protocol: TCP
           livenessProbe:
             {{- if .Values.web.livenessProbe }}
