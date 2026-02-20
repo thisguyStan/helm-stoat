@@ -286,7 +286,7 @@ spec:
               value: {{ $livekitSecrets | toJson | quote }}
       containers:
         - name: apply-config
-          image: registry.k8s.io/kubectl:v1.31.0
+          image: alpine/k8s:1.31.0
           imagePullPolicy: IfNotPresent
           command:
             - /bin/sh
