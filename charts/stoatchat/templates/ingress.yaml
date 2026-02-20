@@ -26,6 +26,7 @@ metadata:
   {{- end }}
     kubernetes.io/tls-acme: "true"
     {{- if eq .Values.global.ingress.className "nginx" }}
+    nginx.ingress.kubernetes.io/use-regex: "true"
     nginx.ingress.kubernetes.io/rewrite-target: /$2
     nginx.ingress.kubernetes.io/force-ssl-redirect: 'true'
     nginx.ingress.kubernetes.io/proxy-body-size: '0'
@@ -49,7 +50,7 @@ spec:
       http:
         paths:
           - path: '/api(/)?(.*)'
-            pathType: Prefix
+            pathType: ImplementationSpecific
             backend:
               service:
                 name: '{{ include "stoatchat.fullname" . }}-api'
@@ -65,7 +66,7 @@ spec:
                   name: http
 
           - path: '/autumn(/)?(.*)'
-            pathType: Prefix
+            pathType: ImplementationSpecific
             backend:
               service:
                 name: '{{ include "stoatchat.fullname" . }}-autumn'
@@ -73,7 +74,7 @@ spec:
                   name: http
 
           - path: '/january(/)?(.*)'
-            pathType: Prefix
+            pathType: ImplementationSpecific
             backend:
               service:
                 name: '{{ include "stoatchat.fullname" . }}-january'
@@ -82,7 +83,7 @@ spec:
 
           {{- if .Values.gifbox.enabled }}
           - path: '/gifbox(/)?(.*)'
-            pathType: Prefix
+            pathType: ImplementationSpecific
             backend:
               service:
                 name: '{{ include "stoatchat.fullname" . }}-gifbox'
@@ -91,7 +92,7 @@ spec:
           {{- end }}
 
           - path: '/(/)?(.*)'
-            pathType: Prefix
+            pathType: ImplementationSpecific
             backend:
               service:
                 name: '{{ include "stoatchat.fullname" . }}-web'
