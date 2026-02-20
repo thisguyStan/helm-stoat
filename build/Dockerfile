@@ -57,10 +57,16 @@ FROM nginx:1.27.3-alpine
 COPY --from=builder /app/packages/client/dist /usr/share/nginx/html
 
 # Add nginx configuration for SPA routing
+# The Vite build uses base: '/app/' so asset paths in index.html are /app/assets/...
+# but the files are copied flat to /usr/share/nginx/html/assets/
+# The /app/ location rewrites to strip the prefix so assets resolve correctly
 RUN echo 'server { \
     listen 80; \
     root /usr/share/nginx/html; \
     index index.html; \
+    location /app/ { \
+        rewrite ^/app/(.*)$ /$1 last; \
+    } \
     location / { \
         try_files $uri $uri/ /index.html; \
     } \
