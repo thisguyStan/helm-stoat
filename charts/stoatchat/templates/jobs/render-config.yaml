@@ -161,6 +161,17 @@ spec:
                 'vapid_public_key': os.getenv('FALLBACK_VAPID_PUBLIC_KEY', '').strip(),
               }
 
+              service_name = os.getenv('STOATCHAT_FULLNAME', '').strip()
+              use_subchart_mongodb = os.getenv('USE_SUBCHART_MONGODB_PASSWORD', '').strip().lower() == 'true'
+              use_subchart_redis = os.getenv('USE_SUBCHART_REDIS_PASSWORD', '').strip().lower() == 'true'
+              use_subchart_rabbitmq = os.getenv('USE_SUBCHART_RABBITMQ_PASSWORD', '').strip().lower() == 'true'
+              use_subchart_minio = os.getenv('USE_SUBCHART_MINIO_CREDENTIALS', '').strip().lower() == 'true'
+              subchart_mongodb_password = os.getenv('SUBCHART_MONGODB_PASSWORD', '').strip()
+              subchart_redis_password = os.getenv('SUBCHART_REDIS_PASSWORD', '').strip()
+              subchart_rabbitmq_password = os.getenv('SUBCHART_RABBITMQ_PASSWORD', '').strip()
+              subchart_minio_access_key_id = os.getenv('SUBCHART_MINIO_ACCESS_KEY_ID', '').strip()
+              subchart_minio_secret_access_key = os.getenv('SUBCHART_MINIO_SECRET_ACCESS_KEY', '').strip()
+
               livekit_secrets = {}
               livekit_json = os.getenv('FALLBACK_LIVEKIT_SECRETS_JSON', '').strip()
               if livekit_json:
@@ -184,6 +195,21 @@ spec:
                   secret_values['vapid_key'] = private_key.read_text().strip()
                 if 'vapid_public_key' not in secret_values and public_key.exists():
                   secret_values['vapid_public_key'] = public_key.read_text().strip()
+
+              if service_name and use_subchart_mongodb and subchart_mongodb_password:
+                secret_values['database.mongodb'] = f'mongodb://root:{subchart_mongodb_password}@{service_name}-mongodb/revolt?authSource=admin'
+
+              if service_name and use_subchart_redis and subchart_redis_password:
+                secret_values['database.redis'] = f'redis://:{subchart_redis_password}@{service_name}-redis-master'
+
+              if use_subchart_rabbitmq and subchart_rabbitmq_password:
+                secret_values['rabbitmq.password'] = subchart_rabbitmq_password
+
+              if use_subchart_minio and subchart_minio_access_key_id:
+                secret_values['minio.access_key_id'] = subchart_minio_access_key_id
+
+              if use_subchart_minio and subchart_minio_secret_access_key:
+                secret_values['minio.secret_access_key'] = subchart_minio_secret_access_key
 
               for secret_key, fallback_value in fallback_values.items():
                 if secret_key not in secret_values and fallback_value:
@@ -228,6 +254,46 @@ spec:
               mountPath: /vapid
               readOnly: true
           env:
+            - name: STOATCHAT_FULLNAME
+              value: {{ $fullName | quote }}
+            - name: USE_SUBCHART_MONGODB_PASSWORD
+              value: {{ and (not .Values.global.subcharts.mongodb.connection_url) .Values.global.subcharts.mongodb.enabled .Values.mongodb.auth.enabled | quote }}
+            - name: USE_SUBCHART_REDIS_PASSWORD
+              value: {{ and (not .Values.global.subcharts.redis.connection_url) .Values.global.subcharts.redis.enabled .Values.redis.auth.enabled | quote }}
+            - name: USE_SUBCHART_RABBITMQ_PASSWORD
+              value: {{ and .Values.global.subcharts.rabbitmq.enabled (not .Values.global.subcharts.rabbitmq.host) | quote }}
+            - name: USE_SUBCHART_MINIO_CREDENTIALS
+              value: {{ and .Values.global.subcharts.minio.enabled (not .Values.global.subcharts.minio.connection_url) | quote }}
+            - name: SUBCHART_MONGODB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.mongodb.auth.existingSecret | default (printf "%s-mongodb" $fullName) | quote }}
+                  key: {{ get (.Values.mongodb.auth.secretKeys | default (dict)) "rootPasswordKey" | default "mongodb-root-password" | quote }}
+                  optional: true
+            - name: SUBCHART_REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.redis.auth.existingSecret | default (printf "%s-redis" $fullName) | quote }}
+                  key: {{ .Values.redis.auth.existingSecretPasswordKey | default "redis-password" | quote }}
+                  optional: true
+            - name: SUBCHART_RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.rabbitmq.auth.existingPasswordSecret | default (printf "%s-rabbitmq" $fullName) | quote }}
+                  key: {{ get (.Values.rabbitmq.auth | default (dict)) "existingSecretPasswordKey" | default "rabbitmq-password" | quote }}
+                  optional: true
+            - name: SUBCHART_MINIO_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.minio.auth.existingSecret | default (printf "%s-minio" $fullName) | quote }}
+                  key: {{ get (.Values.minio.auth | default (dict)) "rootUserSecretKey" | default "root-user" | quote }}
+                  optional: true
+            - name: SUBCHART_MINIO_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.minio.auth.existingSecret | default (printf "%s-minio" $fullName) | quote }}
+                  key: {{ get (.Values.minio.auth | default (dict)) "rootPasswordSecretKey" | default "root-password" | quote }}
+                  optional: true
             - name: FALLBACK_DATABASE_MONGODB
               value: {{ if .Values.global.subcharts.mongodb.connection_url }}{{ .Values.global.subcharts.mongodb.connection_url | quote }}{{ else if .Values.mongodb.auth.enabled }}{{ printf "mongodb://root:%s@%s-mongodb/revolt?authSource=admin" (include "stoatchat.deriveSecret" (dict "root" . "id" "mongodb" "length" 32)) $fullName | quote }}{{ else }}{{ printf "mongodb://%s-mongodb" $fullName | quote }}{{ end }}
             - name: FALLBACK_DATABASE_REDIS
