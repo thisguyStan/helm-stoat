@@ -311,9 +311,11 @@ api:
 # Livekit Server
 livekit:
   image:
-    repository: ghcr.io/stoatchat/livekit-server
+    repository: livekit/livekit-server
     tag: "v1.9.9"
     pullPolicy: IfNotPresent
+  strategy:
+    type: Recreate
   annotations: {}
   labels: {}
   nodeSelector: {}
