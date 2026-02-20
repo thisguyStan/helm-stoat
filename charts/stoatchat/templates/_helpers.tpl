@@ -124,11 +124,12 @@ Get VAPID private key from user input or from secret
   {{- $key -}}
 {{- else -}}
   {{- $fullName := include "stoatchat.fullname" . -}}
-  {{- $secret := lookup "v1" "Secret" .Release.Namespace (printf "%s-vapid" $fullName) -}}
+  {{- $namespace := default .Release.Namespace .Values.global.namespace -}}
+  {{- $secret := lookup "v1" "Secret" $namespace (printf "%s-vapid" $fullName) -}}
   {{- if $secret -}}
     {{- index $secret.data "private_key" | b64dec -}}
   {{- else -}}
-    {{- fail "VAPID keys not found. They will be auto-generated on first install. If upgrading, check the vapid Secret exists." -}}
+    {{- "" -}}
   {{- end -}}
 {{- end -}}
 {{- end -}}
@@ -142,11 +143,12 @@ Get VAPID public key from user input or from secret
   {{- $key -}}
 {{- else -}}
   {{- $fullName := include "stoatchat.fullname" . -}}
-  {{- $secret := lookup "v1" "Secret" .Release.Namespace (printf "%s-vapid" $fullName) -}}
+  {{- $namespace := default .Release.Namespace .Values.global.namespace -}}
+  {{- $secret := lookup "v1" "Secret" $namespace (printf "%s-vapid" $fullName) -}}
   {{- if $secret -}}
     {{- index $secret.data "public_key" | b64dec -}}
   {{- else -}}
-    {{- fail "VAPID keys not found. They will be auto-generated on first install. If upgrading, check the vapid Secret exists." -}}
+    {{- "" -}}
   {{- end -}}
 {{- end -}}
 {{- end -}}
