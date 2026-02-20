@@ -94,9 +94,6 @@ stringData:
 
     {{- end }}
 
-    [pushd]
-    production = {{ .Values.global.config.production }}
-
     [pushd.vapid]
     private_key = {{ include "stoatchat.vapidPrivateKey" . | quote }}
     public_key = {{ include "stoatchat.vapidPublicKey" . | quote }}
