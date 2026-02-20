@@ -21,7 +21,7 @@ global:
   # Example:
   #   existingSecret:
   #     name: "stoatchat-master-seed"
-  #     namespace: "default"  # optional, defaults to release namespace
+  #     namespace: "default"  # optional, defaults to global.namespace
   existingSecret:
     name: ""
     # namespace: ""  # optional

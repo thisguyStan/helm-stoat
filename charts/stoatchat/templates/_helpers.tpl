@@ -69,7 +69,7 @@ Usage: {{ include "stoatchat.secretValue" (dict "root" . "key" "smtp.password" "
 {{- $root := .root -}}
 {{- $fallback := .default | default "" -}}
 {{- if and $root.Values.global.existingSecret $root.Values.global.existingSecret.name -}}
-  {{- $namespace := default $root.Release.Namespace $root.Values.global.existingSecret.namespace -}}
+  {{- $namespace := default $root.Values.global.namespace $root.Values.global.existingSecret.namespace -}}
   {{- $secret := lookup "v1" "Secret" $namespace $root.Values.global.existingSecret.name -}}
   {{- if and $secret (hasKey $secret.data .key) -}}
     {{- index $secret.data .key | b64dec -}}
