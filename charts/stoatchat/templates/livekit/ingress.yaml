@@ -27,7 +27,7 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
     kubernetes.io/tls-acme: "true"
-    {{- if eq $root.Values.global.ingress.className "nginx" }}
+    {{- if or (eq $root.Values.global.ingress.className "nginx") (eq $root.Values.global.ingress.className "ingress-nginx") }}
     nginx.ingress.kubernetes.io/force-ssl-redirect: 'true'
     nginx.ingress.kubernetes.io/proxy-body-size: '0'
     {{- end }}
