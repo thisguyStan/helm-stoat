@@ -3,6 +3,33 @@ entries:
   stoatchat:
   - apiVersion: v2
     appVersion: 0.11.0
+    created: "2026-02-20T23:06:57.006140042Z"
+    dependencies:
+    - condition: global.subcharts.mongodb.enabled
+      name: mongodb
+      repository: https://charts.bitnami.com/bitnami
+      version: '>=18.5.0'
+    - condition: global.subcharts.redis.enabled
+      name: redis
+      repository: https://charts.bitnami.com/bitnami
+      version: '>=25.3.0'
+    - condition: global.subcharts.minio.enabled
+      name: minio
+      repository: https://charts.bitnami.com/bitnami
+      version: '>=17.0.21'
+    - condition: global.subcharts.rabbitmq.enabled
+      name: rabbitmq
+      repository: https://charts.bitnami.com/bitnami
+      version: '>=16.0.14'
+    description: Stoat Chat self hosted server
+    digest: 7b11ffdf9ed4fff154de8ef168e1562a85cd2a0c408540c113318b4b28aaa0c4
+    name: stoatchat
+    type: application
+    urls:
+    - https://github.com/thisguyStan/helm-stoat/releases/download/stoatchat-0.5.2/stoatchat-0.5.2.tgz
+    version: 0.5.2
+  - apiVersion: v2
+    appVersion: 0.11.0
     created: "2026-02-20T23:01:33.176042043Z"
     dependencies:
     - condition: global.subcharts.mongodb.enabled
@@ -622,4 +649,4 @@ entries:
     urls:
     - https://github.com/thisguyStan/helm-stoat/releases/download/stoatchat-0.0.1/stoatchat-0.0.1.tgz
     version: 0.0.1
-generated: "2026-02-20T23:01:33.176198055Z"
+generated: "2026-02-20T23:06:57.006337762Z"
