@@ -1,12 +1,13 @@
 {{- $fullName := include "stoatchat.fullname" . -}}
 apiVersion: v1
-kind: ConfigMap
+kind: Secret
 metadata:
   name: {{ $fullName }}-config
   namespace: {{ .Values.global.namespace }}
   annotations:
     "helm.sh/resource-policy": keep
-data:
+type: Opaque
+stringData:
   Revolt.toml: |
     production = false
 
@@ -30,7 +31,7 @@ data:
     host = {{ .Values.global.subcharts.rabbitmq.host | default (printf "%s-rabbitmq" $fullName) | quote }}
     port = {{ .Values.global.subcharts.rabbitmq.port }}
     username = {{ .Values.rabbitmq.auth.username | quote }}
-    password = {{ include "stoatchat.deriveSecret" (dict "root" . "id" "rabbitmq" "length" 32) | quote }}
+    password = {{ include "stoatchat.secretValue" (dict "root" . "key" "rabbitmq.password" "default" (include "stoatchat.deriveSecret" (dict "root" . "id" "rabbitmq" "length" 32))) | quote }}
 
     [hosts]
     app = "https://{{ .Values.global.domain }}"
@@ -53,8 +54,8 @@ data:
 
     [api.smtp]
     host = {{ .Values.global.config.smtp.host | quote }}
-    username = {{ .Values.global.config.smtp.username | quote }}
-    password = {{ .Values.global.config.smtp.password | quote }}
+    username = {{ include "stoatchat.secretValue" (dict "root" . "key" "smtp.username" "default" .Values.global.config.smtp.username) | quote }}
+    password = {{ include "stoatchat.secretValue" (dict "root" . "key" "smtp.password" "default" .Values.global.config.smtp.password) | quote }}
     from_address = {{ .Values.global.config.smtp.from_address | quote }}
     {{- with .Values.global.config.smtp.port }}
     port = {{ . }}
@@ -67,13 +68,13 @@ data:
     {{- end }}
 
     [api.security]
-    authifier_shield_key = {{ .Values.global.config.security.authifier_shield_key | quote }}
+    authifier_shield_key = {{ include "stoatchat.secretValue" (dict "root" . "key" "security.authifier_shield_key" "default" .Values.global.config.security.authifier_shield_key) | quote }}
     trust_cloudflare = {{ .Values.global.config.security.trust_cloudflare }}
-    tenor_key = {{ .Values.global.config.security.tenor_key | quote }}
+    tenor_key = {{ include "stoatchat.secretValue" (dict "root" . "key" "security.tenor_key" "default" .Values.global.config.security.tenor_key) | quote }}
 
     [api.security.captcha]
-    hcaptcha_key = {{ .Values.global.config.security.captcha.hcaptcha_key | quote }}
-    hcaptcha_sitekey = {{ .Values.global.config.security.captcha.hcaptcha_sitekey | quote }}
+    hcaptcha_key = {{ include "stoatchat.secretValue" (dict "root" . "key" "security.captcha.hcaptcha_key" "default" .Values.global.config.security.captcha.hcaptcha_key) | quote }}
+    hcaptcha_sitekey = {{ include "stoatchat.secretValue" (dict "root" . "key" "security.captcha.hcaptcha_sitekey" "default" .Values.global.config.security.captcha.hcaptcha_sitekey) | quote }}
 
     [api.livekit]
     call_ring_duration = {{ .Values.global.config.livekit.call_ring_duration }}
@@ -102,24 +103,24 @@ data:
 
     [pushd.fcm]
     {{- with .Values.global.config.pushd.fcm }}
-    key_type = {{ .key_type | quote }}
-    project_id = {{ .project_id | quote }}
-    private_key_id = {{ .private_key_id | quote }}
-    private_key = {{ .private_key | quote }}
-    client_email = {{ .client_email | quote }}
-    client_id = {{ .client_id | quote }}
-    auth_uri = {{ .auth_uri | quote }}
-    token_uri = {{ .token_uri | quote }}
-    auth_provider_x509_cert_url = {{ .auth_provider_x509_cert_url | quote }}
-    client_x509_cert_url = {{ .client_x509_cert_url | quote }}
+    key_type = {{ include "stoatchat.secretValue" (dict "root" $ "key" "pushd.fcm.key_type" "default" .key_type) | quote }}
+    project_id = {{ include "stoatchat.secretValue" (dict "root" $ "key" "pushd.fcm.project_id" "default" .project_id) | quote }}
+    private_key_id = {{ include "stoatchat.secretValue" (dict "root" $ "key" "pushd.fcm.private_key_id" "default" .private_key_id) | quote }}
+    private_key = {{ include "stoatchat.secretValue" (dict "root" $ "key" "pushd.fcm.private_key" "default" .private_key) | quote }}
+    client_email = {{ include "stoatchat.secretValue" (dict "root" $ "key" "pushd.fcm.client_email" "default" .client_email) | quote }}
+    client_id = {{ include "stoatchat.secretValue" (dict "root" $ "key" "pushd.fcm.client_id" "default" .client_id) | quote }}
+    auth_uri = {{ include "stoatchat.secretValue" (dict "root" $ "key" "pushd.fcm.auth_uri" "default" .auth_uri) | quote }}
+    token_uri = {{ include "stoatchat.secretValue" (dict "root" $ "key" "pushd.fcm.token_uri" "default" .token_uri) | quote }}
+    auth_provider_x509_cert_url = {{ include "stoatchat.secretValue" (dict "root" $ "key" "pushd.fcm.auth_provider_x509_cert_url" "default" .auth_provider_x509_cert_url) | quote }}
+    client_x509_cert_url = {{ include "stoatchat.secretValue" (dict "root" $ "key" "pushd.fcm.client_x509_cert_url" "default" .client_x509_cert_url) | quote }}
     {{- end }}
 
     [pushd.apn]
     {{- with .Values.global.config.pushd.apn }}
     sandbox = {{ .sandbox }}
-    pkcs8 = {{ .pkcs8 | quote }}
-    key_id = {{ .key_id | quote }}
-    team_id = {{ .team_id | quote }}
+    pkcs8 = {{ include "stoatchat.secretValue" (dict "root" $ "key" "pushd.apn.pkcs8" "default" .pkcs8) | quote }}
+    key_id = {{ include "stoatchat.secretValue" (dict "root" $ "key" "pushd.apn.key_id" "default" .key_id) | quote }}
+    team_id = {{ include "stoatchat.secretValue" (dict "root" $ "key" "pushd.apn.team_id" "default" .team_id) | quote }}
     {{- end }}
 
     [files]
@@ -137,9 +138,9 @@ data:
     # S3 region name
     region = "minio"
     # S3 protocol key ID
-    access_key_id = {{ .Values.global.subcharts.minio.access_key_id | default (include "stoatchat.deriveSecret" (dict "root" . "id" "minio-user" "length" 12)) | quote }}
+    access_key_id = {{ include "stoatchat.secretValue" (dict "root" . "key" "minio.access_key_id" "default" (.Values.global.subcharts.minio.access_key_id | default (include "stoatchat.deriveSecret" (dict "root" . "id" "minio-user" "length" 12)))) | quote }}
     # S3 protocol access key
-    secret_access_key = {{ .Values.global.subcharts.minio.secret_access_key | default (include "stoatchat.deriveSecret" (dict "root" . "id" "minio-pass" "length" 32)) | quote }}
+    secret_access_key = {{ include "stoatchat.secretValue" (dict "root" . "key" "minio.secret_access_key" "default" (.Values.global.subcharts.minio.secret_access_key | default (include "stoatchat.deriveSecret" (dict "root" . "id" "minio-pass" "length" 32)))) | quote }}
     default_bucket = "revolt-uploads"
 
     [features]

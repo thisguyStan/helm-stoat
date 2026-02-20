@@ -15,17 +15,16 @@ global:
   # Provide a seed to make all passwords deterministic and reproducible
   secretSeed: ''
   
-  # Alternative: Read secretSeed from an existing Kubernetes Secret
-  # If set, this takes precedence over secretSeed above (more secure)
+  # Alternative: read values from one existing Kubernetes Secret.
+  # If a key exists there, it is preferred over values.yaml for supported fields (only global section).
+  # Typical keys: secretSeed, smtp.username, smtp.password, minio.access_key_id, minio.secret_access_key
   # Example:
-  #   existingSecretSeed:
+  #   existingSecret:
   #     name: "stoatchat-master-seed"
   #     namespace: "default"  # optional, defaults to release namespace
-  #     key: "secretSeed"     # optional, defaults to "secretSeed"
-  existingSecretSeed:
+  existingSecret:
     name: ""
     # namespace: ""  # optional
-    # key: "secretSeed"  # optional
 
   secret:
     # VAPID keys for push notifications (required)

@@ -64,8 +64,11 @@ spec:
             {{- end }}
       volumes:
         - name: config
-          configMap:
-            name: {{ include "stoatchat.fullname" . }}-config
+          secret:
+            secretName: {{ include "stoatchat.fullname" . }}-config
+            items:
+              - key: Revolt.toml
+                path: Revolt.toml
         {{- with .Values.api.extra_volumes }}
         {{ toYaml . | nindent 8 }}
         {{- end }}
