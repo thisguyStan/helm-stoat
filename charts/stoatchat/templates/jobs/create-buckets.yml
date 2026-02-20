@@ -42,6 +42,11 @@ spec:
             - |
               set -eu
 
+              if [ -z "${S3_ACCESS_KEY:-}" ] || [ -z "${S3_SECRET_KEY:-}" ]; then
+                echo "Missing S3 credentials"
+                exit 1
+              fi
+
               echo "Using S3 endpoint: ${S3_ENDPOINT}"
 
               attempts=0
@@ -97,6 +102,14 @@ spec:
               value: {{ include "stoatchat.secretValue" (dict "root" . "key" "minio.access_key_id" "default" (.Values.global.subcharts.minio.access_key_id | default .Values.minio.rootUser | default "minioautumn")) | quote }}
             - name: S3_SECRET_KEY
               value: {{ include "stoatchat.secretValue" (dict "root" . "key" "minio.secret_access_key" "default" (.Values.global.subcharts.minio.secret_access_key | default .Values.minio.rootPassword | default "minioautumn")) | quote }}
+          {{- with .Values.createBuckets.extra_volumeMounts }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with .Values.createBuckets.extra_volumes }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       {{- with .Values.web.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

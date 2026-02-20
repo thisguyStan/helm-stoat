@@ -90,7 +90,7 @@ stringData:
     lat = {{ $v.lat | default 0.0 }}
     lon = {{ $v.lon | default 0.0 }}
     key = "{{ $v.name }}"
-    secret = "{{ $v.secret }}"
+    secret = {{ ($v.secret | default (include "stoatchat.deriveSecret" (dict "root" $ "id" (printf "livekit-%s" $v.name) "length" 32))) | quote }}
 
     {{- end }}
 

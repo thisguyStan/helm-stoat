@@ -458,6 +458,11 @@ voiceIngress:
   extra_volumeMounts: []
   configMountPath: /Revolt.toml
 
+# Pre-install job that ensures required S3 bucket exists
+createBuckets:
+  extra_volumes: []
+  extra_volumeMounts: []
+
 # Tenor GIF proxy
 # NOTE: As of 15.feb.2025, the web app does not have a configurable gifbox host
 gifbox:
