@@ -286,7 +286,7 @@ spec:
               value: {{ $livekitSecrets | toJson | quote }}
       containers:
         - name: apply-config
-          image: bitnami/kubectl:1.31
+          image: registry.k8s.io/kubectl:v1.31.0
           imagePullPolicy: IfNotPresent
           command:
             - /bin/sh
