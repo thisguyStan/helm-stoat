@@ -221,18 +221,21 @@ spec:
                   current_section = line[1:-1]
                   continue
 
-                if current_section and current_section.startswith('api.livekit.nodes.') and line.startswith('    secret = '):
+                stripped_line = line.lstrip()
+                indentation = line[:len(line) - len(stripped_line)]
+
+                if current_section and current_section.startswith('api.livekit.nodes.') and stripped_line.startswith('secret = '):
                   node_name = current_section.split('.')[-1]
                   fallback_livekit_secret = str(livekit_secrets.get(node_name, '')).strip()
                   if fallback_livekit_secret:
                     value = fallback_livekit_secret.replace('\\', '\\\\').replace('"', '\\"')
-                    lines[index] = f'    secret = "{value}"'
+                    lines[index] = f'{indentation}secret = "{value}"'
                   continue
 
                 for section, key, secret_key in mapping:
-                  if current_section == section and secret_key in secret_values and line.startswith(f'    {key} = '):
+                  if current_section == section and secret_key in secret_values and stripped_line.startswith(f'{key} = '):
                     value = secret_values[secret_key].replace('\\', '\\\\').replace('"', '\\"')
-                    lines[index] = f'    {key} = "{value}"'
+                    lines[index] = f'{indentation}{key} = "{value}"'
                     break
 
               output = '\n'.join(lines)
