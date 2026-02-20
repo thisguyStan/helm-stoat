@@ -38,7 +38,7 @@ spec:
             {{- toYaml .Values.web.livenessProbe | nindent 12 }}
             {{- else }}
             tcpSocket:
-              port: {{ .Values.global.web.port }}
+              port: http
             initialDelaySeconds: 60
             periodSeconds: 30
             {{- end }}
@@ -47,7 +47,7 @@ spec:
             {{- toYaml .Values.web.readinessProbe | nindent 12 }}
             {{- else }}
             tcpSocket:
-              port: {{ .Values.global.web.port }}
+              port: http
             initialDelaySeconds: 60
             periodSeconds: 30
             {{- end }}
