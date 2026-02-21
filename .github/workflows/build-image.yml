@@ -31,13 +31,20 @@ jobs:
     steps:
       - name: Clone for-web repository
         run: |
-          git clone --recursive --branch ${{ inputs.git_branch }} --depth 1 ${{ inputs.git_repo }} build
+          git clone --branch ${{ inputs.git_branch }} --depth 1 ${{ inputs.git_repo }} build
           git -C build submodule sync --recursive
-          git -C build submodule update --init --recursive --depth 1
+          git -C build config url."https://github.com/".insteadOf "ssh://git@github.com/"
+          git -C build config url."https://github.com/".insteadOf "git@github.com:"
 
           assets_submodule_name="$(git -C build config -f .gitmodules --get-regexp '^submodule\..*\.url$' | awk '/github.com\/stoatchat\/assets(\.git)?$/ {name=$1; sub(/^submodule\./, "", name); sub(/\.url$/, "", name); print name; exit}')"
           if [ -n "$assets_submodule_name" ]; then
             assets_submodule_path="$(git -C build config -f .gitmodules --get "submodule.${assets_submodule_name}.path")"
+            git -C build config "submodule.${assets_submodule_name}.url" "https://github.com/stoatchat/assets.git"
+          fi
+
+          git -C build submodule update --init --recursive --depth 1
+
+          if [ -n "$assets_submodule_name" ]; then
             git -C build -c "submodule.${assets_submodule_name}.update=checkout" submodule update --init --remote --depth 1 -- "$assets_submodule_path"
           fi
 
