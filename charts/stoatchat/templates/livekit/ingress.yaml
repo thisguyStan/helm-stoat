@@ -1,7 +1,7 @@
 {{- if .Values.global.ingress.enabled -}}
 {{- $root := . -}}
 {{- $fullName := include "stoatchat.fullname" . -}}
-{{- range $instance := .Values.global.livekit }}
+{{- range $instance := .Values.global.livekit.servers }}
 {{- if and $instance.name $instance.subdomain }}
 ---
 {{- if and $root.Values.global.ingress.className (not (semverCompare ">=1.18-0" $root.Capabilities.KubeVersion.GitVersion)) }}

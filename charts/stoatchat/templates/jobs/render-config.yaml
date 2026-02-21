@@ -3,7 +3,7 @@
 {{- fail "global.existingSecret.namespace must match global.namespace because render-config mounts the Secret as a pod volume." -}}
 {{- end -}}
 {{- $livekitSecrets := dict -}}
-{{- range $v := .Values.global.livekit -}}
+{{- range $v := .Values.global.livekit.servers -}}
 {{- $_ := set $livekitSecrets $v.name ($v.secret | default (include "stoatchat.deriveSecret" (dict "root" $ "id" (printf "livekit-%s" $v.name) "length" 32))) -}}
 {{- end -}}
 ---

@@ -1,6 +1,6 @@
 {{- $root := . -}}
 {{- $fullName := include "stoatchat.fullname" . -}}
-{{- range $instance := .Values.global.livekit }}
+{{- range $instance := .Values.global.livekit.servers }}
 {{- if $instance.name }}
 ---
 apiVersion: v1
@@ -26,6 +26,16 @@ spec:
       targetPort: rtc-udp
       protocol: UDP
       port: {{ $instance.rtc_udp_port | default 7882 }}
+    - name: turn-udp
+      targetPort: turn-udp
+      protocol: UDP
+      port: {{ $instance.turn.udp_port | default 3478 }}
+    {{- if gt ($instance.turn.tls_port | default 0) 0 }}
+    - name: turn-tls
+      targetPort: turn-tls
+      protocol: TCP
+      port: {{ $instance.turn.tls_port }}
+    {{- end }}
   selector:
     {{- include "stoatchat.selectorLabels" $root | nindent 4 }}
     stoat-app: {{ $fullName }}-livekit-{{ $instance.name }}

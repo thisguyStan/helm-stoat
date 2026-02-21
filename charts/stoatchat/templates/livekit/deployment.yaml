@@ -1,6 +1,6 @@
 {{- $root := . -}}
 {{- $fullName := include "stoatchat.fullname" . -}}
-{{- range $instance := .Values.global.livekit }}
+{{- range $instance := .Values.global.livekit.servers }}
 {{- if $instance.name }}
 ---
 apiVersion: apps/v1
@@ -53,6 +53,16 @@ spec:
               containerPort: {{ $instance.rtc_udp_port | default 7882 }}
               hostPort: {{ $instance.rtc_udp_port | default 7882 }}
               protocol: UDP
+            - name: turn-udp
+              containerPort: {{ $instance.turn.udp_port | default 3478 }}
+              hostPort: {{ $instance.turn.udp_port | default 3478 }}
+              protocol: UDP
+            {{- if gt ($instance.turn.tls_port | default 0) 0 }}
+            - name: turn-tls
+              containerPort: {{ $instance.turn.tls_port }}
+              hostPort: {{ $instance.turn.tls_port }}
+              protocol: TCP
+            {{- end }}
           env:
             - name: LIVEKIT_CONFIG
               valueFrom:

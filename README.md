@@ -198,18 +198,20 @@ global:
 
 ### LiveKit Instances
 
-LiveKit is configured as a list under `global.livekit`. Each entry represents a LiveKit node.
+LiveKit is configured as a list under `global.livekit.servers`. Each entry represents a LiveKit node.
 
 | Chart Option                                  | Description                                              | Default        |
 |-----------------------------------------------|----------------------------------------------------------|----------------|
-| `global.livekit[].name` **REQUIRED**          | Instance name, also used as the API key                  | `''`           |
-| `global.livekit[].secret` **REQUIRED***       | API secret for this instance                             | `''`           |
-| `global.livekit[].subdomain` **REQUIRED**     | Subdomain in format `<subdomain>.<global.domain>`        | `''`           |
-| `global.livekit[].existingSecret`             | Name of an existing Secret containing `keys.yaml` (e.g. CSI-backed). When set, Helm does not create a secret for this instance. | |
-| `global.livekit[].lat`                        | Latitude for geo-routing                                 | `0.0`          |
-| `global.livekit[].lon`                        | Longitude for geo-routing                                | `0.0`          |
-| `global.livekit[].affinity`                   | Per-instance affinity (merged with `livekit.affinity`)   | `{}`           |
-| `global.livekit[].tolerations`                | Per-instance tolerations (appended to `livekit.tolerations`) | `[]`       |
+| `global.livekit.servers[].name` **REQUIRED**          | Instance name, also used as the API key                  | `''`           |
+| `global.livekit.servers[].secret` **REQUIRED***       | API secret for this instance                             | `''`           |
+| `global.livekit.servers[].subdomain` **REQUIRED**     | Subdomain in format `<subdomain>.<global.domain>`        | `''`           |
+| `global.livekit.servers[].existingSecret`             | Name of an existing Secret containing `keys.yaml` (e.g. CSI-backed). When set, Helm does not create a secret for this instance. | |
+| `global.livekit.servers[].lat`                        | Latitude for geo-routing                                 | `0.0`          |
+| `global.livekit.servers[].lon`                        | Longitude for geo-routing                                | `0.0`          |
+| `global.livekit.servers[].affinity`                   | Per-instance affinity (merged with `livekit.affinity`)   | `{}`           |
+| `global.livekit.servers[].tolerations`                | Per-instance tolerations (appended to `livekit.tolerations`) | `[]`       |
+| `global.livekit.servers[].turn.udp_port`              | TURN/UDP port                                            | `3478`         |
+| `global.livekit.servers[].turn.tls_port`              | TURN/TLS port (0 disables)                               | `0`            |
 
 \* `secret` is required only when `existingSecret` is not set.
 
