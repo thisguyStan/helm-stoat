@@ -52,6 +52,7 @@ global:
     - name: 'worldwide'
       secret: ''  # Auto-derived from secretSeed if empty
       subdomain: ''
+      log_level: warn
       # Ports (defaults shown, override if needed)
       http_port: 7880       # HTTP API port
       rtc_tcp_port: 7881    # RTC TCP port
