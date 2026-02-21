@@ -109,6 +109,8 @@ global:
       # ClamAV antivirus hostname:port (leave empty to disable)
       clamd_host: ''
       s3:
+        # Optional override. If unset, auto-defaults to true for external S3, false for MinIO.
+        # path_style_buckets: true
         default_bucket: ''
 
     # Livekit API settings

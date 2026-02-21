@@ -122,8 +122,12 @@ data:
     # S3 protocol endpoint
     endpoint = {{ .Values.global.subcharts.minio.connection_url | default (printf "http://%s-minio:9000" $fullName) | quote }}
     # Whether to use path-style buckets
-    # Generally true, except for MinIO
-    path_style_buckets = false
+    # Generally true for external S3-compatible providers, false for MinIO
+    {{- if hasKey .Values.global.config.files.s3 "path_style_buckets" }}
+    path_style_buckets = {{ .Values.global.config.files.s3.path_style_buckets }}
+    {{- else }}
+    path_style_buckets = {{ not .Values.global.subcharts.minio.enabled }}
+    {{- end }}
     # S3 region name
     region = "minio"
     # S3 protocol key ID
