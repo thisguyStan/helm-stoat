@@ -150,7 +150,7 @@ Get or derive file encryption key
 {{- if $value -}}
   {{- $value -}}
 {{- else -}}
-  {{- include "stoatchat.deriveSecret" (dict "root" . "id" "file-encryption" "length" 32) -}}
+  {{- include "stoatchat.deriveSecret" (dict "root" . "id" "file-encryption" "length" 32) | b64enc -}}
 {{- end -}}
 {{- end -}}
 

@@ -91,6 +91,8 @@ spec:
             - python
             - -c
             - |
+              import base64
+              import binascii
               import json
               import os
               from pathlib import Path
@@ -129,6 +131,34 @@ spec:
                 ('files.s3', 'access_key_id', 'minio.access_key_id'),
                 ('files.s3', 'secret_access_key', 'minio.secret_access_key'),
               ]
+
+              def normalize_encryption_key(value: str) -> str:
+                value = value.strip()
+                if not value:
+                  return value
+
+                try:
+                  decoded = base64.b64decode(value, validate=True)
+                  if len(decoded) == 32:
+                    return value
+                except binascii.Error:
+                  pass
+
+                if len(value) == 32:
+                  return base64.b64encode(value.encode('utf-8')).decode('ascii')
+
+                if len(value) == 64:
+                  try:
+                    raw = bytes.fromhex(value)
+                    if len(raw) == 32:
+                      return base64.b64encode(raw).decode('ascii')
+                  except ValueError:
+                    pass
+
+                raise ValueError(
+                  'Invalid files.encryption_key. Provide a Base64 string decoding to 32 bytes, '
+                  'or a 32-char legacy key (auto-converted).'
+                )
 
               secret_values = {}
               fallback_values = {
@@ -214,6 +244,9 @@ spec:
               for secret_key, fallback_value in fallback_values.items():
                 if secret_key not in secret_values and fallback_value:
                   secret_values[secret_key] = fallback_value
+
+              if 'encryption_key' in secret_values and secret_values['encryption_key']:
+                secret_values['encryption_key'] = normalize_encryption_key(secret_values['encryption_key'])
 
               current_section = None
               for index, line in enumerate(lines):

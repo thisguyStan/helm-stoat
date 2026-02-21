@@ -52,7 +52,8 @@ To use the minimal setup, you will require
         # Required: VAPID keys from generate_keys.sh
         vapid_key: ''
         vapid_public_key: ''
-        # Optional: Leave empty to auto-derive from secretSeed
+        # Optional: Base64 key decoding to 32 bytes. Leave empty to auto-derive.
+        # Legacy 32-char values are auto-converted during config render.
         encryption_key: ''
       
       livekit:
