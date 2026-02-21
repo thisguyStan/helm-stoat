@@ -52,6 +52,9 @@ data:
     {{- if hasKey .Values.global.config.smtp "use_tls" }}
     use_tls = {{ .Values.global.config.smtp.use_tls }}
     {{- end }}
+    {{- if hasKey .Values.global.config.smtp "use_starttls" }}
+    use_starttls = {{ .Values.global.config.smtp.use_starttls }}
+    {{- end }}
     {{- with .Values.global.config.smtp.reply_to }}
     reply_to = {{ . | quote }}
     {{- end }}

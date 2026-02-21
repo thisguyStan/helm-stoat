@@ -78,6 +78,7 @@ global:
       from_address: 'noreply@example.com'
       # port: 587
       # use_tls: true
+      # use_starttls: true
       # reply_to: ''
 
     # Security settings
