@@ -2,6 +2,7 @@
 {{- $fullName := include "stoatchat.fullname" . -}}
 {{- range $instance := .Values.global.livekit.servers }}
 {{- if $instance.name }}
+{{- $turn := ($instance.turn | default dict) }}
 ---
 apiVersion: v1
 kind: Service
@@ -29,12 +30,12 @@ spec:
     - name: turn-udp
       targetPort: turn-udp
       protocol: UDP
-      port: {{ $instance.turn.udp_port | default 3478 }}
-    {{- if gt ($instance.turn.tls_port | default 0) 0 }}
+      port: {{ (index $turn "udp_port") | default 3478 }}
+    {{- if gt ((index $turn "tls_port") | default 0) 0 }}
     - name: turn-tls
       targetPort: turn-tls
       protocol: TCP
-      port: {{ $instance.turn.tls_port }}
+      port: {{ index $turn "tls_port" }}
     {{- end }}
   selector:
     {{- include "stoatchat.selectorLabels" $root | nindent 4 }}
