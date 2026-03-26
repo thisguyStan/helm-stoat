@@ -32,7 +32,8 @@ jobs:
       - name: Clone for-web repository
         run: |
           git clone --recursive --branch ${{ inputs.git_branch }} --depth 1 ${{ inputs.git_repo }} build
-          git -c submodule."packages/client/assets".update=checkout submodule update --init packages/client/assets
+          git -C build config submodule."packages/client/assets".url https://github.com/stoatchat/assets
+          git -C build -c submodule."packages/client/assets".update=checkout submodule update --init packages/client/assets
       - name: Set lowercase image name
         id: image_name
         run: |
